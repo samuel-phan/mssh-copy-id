@@ -42,6 +42,7 @@ source pyenv.sh
 In the following, we suppose that `pyenv` is sourced.
 
 More info:
+
 * https://github.com/yyuu/pyenv
 * https://github.com/yyuu/pyenv-installer
 
