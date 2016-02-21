@@ -82,7 +82,7 @@ pyenv deactivate
 pyenv virtualenv-delete mssh-copy-id
 ```
 
-## Install the project for development
+## How to install `mssh-copy-id` for development
 
 Go to the project directory, and run:
 
@@ -105,3 +105,20 @@ python setup.py bdist_wheel
 ```
 
 You will find the Wheel package in the `dist` directory.
+
+## How to test the installation `mssh-copy-id`
+
+* Create a new virtualenv:
+
+```
+pyenv virtualenv 2.6.6 foo
+pyenv activate foo
+```
+
+* Go to the `dist` directory, and run:
+
+```
+pip install mssh_copy_id-0.0.1-py2-none-any.whl
+```
+
+You should be able to run `mssh-copy-id` as real production.
