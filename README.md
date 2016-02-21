@@ -16,6 +16,24 @@ TODO
 
 TODO
 
+# How to use
+
+```
+usage: mssh-copy-id [-i IDENTITY_FILE] [user@]hostname ...
+
+optional arguments:
+ -h, --help      show this help message and exit
+ -i, --identity  the SSH identity file. Default: ~/.ssh/id_rsa
+```
+
+## Examples
+
+```
+mssh-copy-id me@server1.acme.com another@server2.acme.com
+
+mssh-copy-id -i /path/to/custom/id_rsa root@server{1..5}
+```
+
 # Development guide
 
 ## Install `pyenv`
