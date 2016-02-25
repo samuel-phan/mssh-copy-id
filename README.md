@@ -24,14 +24,41 @@ usage: mssh-copy-id [-i IDENTITY_FILE] [user@]hostname ...
 optional arguments:
  -h, --help      show this help message and exit
  -i, --identity  the SSH identity file. Default: ~/.ssh/id_rsa
+ -P, --password  the password of the servers.
+                 It is NOT SECURED to set the password that way, since it stays in the bash history.
+                 Password can also be sent on the STDIN.
 ```
 
 ## Examples
 
+Copy the SSH key to 2 servers:
+
 ```
 mssh-copy-id me@server1.acme.com another@server2.acme.com
+```
 
-mssh-copy-id -i /path/to/custom/id_rsa root@server{1..5}
+You can specify the SSH (public) key to send to the servers.
+
+```
+mssh-copy-id -i /path/to/custom/id_rsa root@server1
+```
+
+You can also use the bash expansion to specify several servers:
+
+```
+mssh-copy-id root@server{1..5}
+```
+
+is equivalent to:
+
+```
+mssh-copy-id root@server1 root@server2 root@server3 root@server4 root@server5
+```
+
+You can also send the password on the STDIN:
+
+```
+cat file_that_contains_password | mssh-copy-id root@server{1..5}
 ```
 
 # Development guide
