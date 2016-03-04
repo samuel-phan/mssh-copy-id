@@ -34,7 +34,10 @@ class Main(object):
                     sys.exit(1)
 
         if not self.args.password:
-            self.args.password = getpass.getpass('Enter the common password: ')
+            if not sys.stdin.isatty():
+                self.args.password = sys.stdin.readline().strip()
+            else:
+                self.args.password = getpass.getpass('Enter the common password: ')
 
         # Copy the SSH keys to the hosts
         for host in self.args.hosts:
