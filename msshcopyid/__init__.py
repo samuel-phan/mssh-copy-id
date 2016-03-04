@@ -1,66 +1,57 @@
-# encoding: utf-8
+from __future__ import print_function
+
+import argparse
+import getpass
 import os
-import re
 import sys
-import paramiko
-
-#def main():
-#    print('mssh-copy-id entry point')
-
-# PS : y a pas des cons qui l'ont deja fait ?
-# https://pypi.python.org/pypi/ssh-deploy-key/0.1.1
-
-# Constants
-hostFile = '/etc/hosts'
-# todo: test file exists/readable ?
-keyfile = os.getenv('HOME')+'/.ssh/id_rsa.pub'
-# todo: notre clé publique est toujours la? ... il y a d'autre types de clés possible, faire mieux....
-
-# todo: write def usage()
-# todo: parse args
-# test values
-hostExp = 'localh*'
-username = 'toto'
-port = 22
-
-# Retrieve matching hosts/ip from hosts file
-info = 'matching hosts : '
-hosts = []
-for line in open(hostFile).readlines():
-    lineWithoutEOF = line.splitlines()[0]
-    lineWithoutComments = lineWithoutEOF.split('#')[0]
-    for host in lineWithoutComments.split():
-        try:
-            if re.match(hostExp, host):
-                hosts.append(host)
-                info += host
-        except re.error as e:
-            print('ERROR: Host shall be a regular expression.')
-            sys.exit(1)
-print(info)
-
-# retrieve user key
-if not os.path.isfile(keyfile):
-    print('ERROR: No public key file '+keyfile)
-    sys.exit(1)
-# read all lines, keep first, remove EOF,
-userkey = open(keyfile).readlines()[0].splitlines()[0]
-print('key:'+userkey)
-
-# ask for password
-password = raw_input('password for remote user '+username+':')
-
-# manual ssh-copy-id requests - search/find a best/clean way to do this... !!??
-for host in hosts:
-    client = paramiko.Transport((host, port))
-    client.connect(username=username, password=password)
-    command = 'mkdir -p $HOME/.ssh; echo "' + userkey + '" >> $HOME/.ssh/authorized_keys'
-    session = client.open_channel(kind='session')
-    session.exec_command(command)
-    while True:
-        if session.exit_status_ready():
-            break
-    print 'exit status: ', session.recv_exit_status()
-    # todo: compute return code...
 
 
+DEFAULT_SSH_RSA = '~/.ssh/id_rsa'
+DEFAULT_SSH_DSA = '~/.ssh/id_dsa'
+
+
+def main():
+    mc = Main()
+    mc.main()
+
+
+class Main(object):
+
+    def __init__(self):
+        self.args = None
+
+    def main(self):
+        # Parse input arguments
+        self.args = self.parse_args(sys.argv)
+
+        if not self.args.identity:
+            self.args.identity = os.path.expanduser(DEFAULT_SSH_RSA)
+            if not os.path.exists(self.args.identity):
+                self.args.identity = os.path.expanduser(DEFAULT_SSH_DSA)
+                if not os.path.exists(self.args.identity):
+                    print('Error: Cannot find any SSH keys in {0} and {1}.'.format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA),
+                          file=sys.stderr)
+                    sys.exit(1)
+
+        if not self.args.password:
+            self.args.password = getpass.getpass('Enter the common password: ')
+
+        # Copy the SSH keys to the hosts
+        for host in self.args.hosts:
+            self.copy_ssh_keys(host)
+
+    def parse_args(self, argv):
+        parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
+        parser.add_argument('hosts', metavar='host', nargs='+',
+                            help='the remote hosts to copy the keys to.  Syntax: [user@]hostname')
+        parser.add_argument('-i', '--identity', help='the SSH identity file. Default: {0} or {1}'
+                                                     .format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA))
+        parser.add_argument('-P', '--password',
+                            help='the password to log into the remote hosts.  It is NOT SECURED to set the password '
+                                 'that way, since it stays in the bash history.  Password can also be sent on the '
+                                 'STDIN.')
+        return parser.parse_args(argv[1:])
+
+    def copy_ssh_keys(self, host):
+        # TODO: implement it
+        print('I copy the SSH keys [{0}] to the host [{1}]...'.format(self.args.identity, host))
