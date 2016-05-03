@@ -63,6 +63,11 @@ class Main(object):
             if not self.args.known_hosts:
                 self.args.known_hosts = DEFAULT_KNOWN_HOSTS
 
+            # Check that known_hosts file exists
+            if not os.path.exists(self.args.known_hosts):
+                with open(self.args.known_hosts, 'w'):
+                    pass
+
             # Add the remote hosts' SSH public keys to the known_hosts
             self.add_to_known_hosts(hosts, known_hosts=self.args.known_hosts)
 
