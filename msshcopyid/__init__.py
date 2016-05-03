@@ -28,9 +28,11 @@ class Main(object):
 
     def __init__(self):
         self.args = None
+
         self.priv_key = None
         self.pub_key = None
         self.pub_key_content = None
+        self.known_hosts_file = DEFAULT_KNOWN_HOSTS
 
     def main(self):
         # Parse input arguments
@@ -63,18 +65,23 @@ class Main(object):
             print('Dry run: nothing will be changed.')
 
         # Check the action to perform
-        if self.args.key or self.args.known_hosts:
-            # Add the remote hosts' SSH keys only
-            if not self.args.known_hosts:
-                self.args.known_hosts = DEFAULT_KNOWN_HOSTS
+        if self.args.key or self.args.known_hosts or self.args.remove:
+            # Action on the known_hosts file
+
+            if self.args.known_hosts:
+                self.known_hosts_file = self.args.known_hosts
 
             # Check that known_hosts file exists
-            if not os.path.exists(self.args.known_hosts):
-                with open(self.args.known_hosts, 'w'):
+            if not os.path.exists(self.known_hosts_file):
+                with open(self.known_hosts_file, 'w'):
                     pass
 
-            # Add the remote hosts' SSH public keys to the known_hosts
-            self.add_to_known_hosts(hosts, known_hosts=self.args.known_hosts)
+            if self.args.remove:
+                # Remove the hosts from the known_hosts file
+                self.remove_from_known_hosts(hosts, known_hosts=self.known_hosts_file, dry=self.args.dry)
+            else:
+                # Add the remote hosts' SSH public keys to the known_hosts
+                self.add_to_known_hosts(hosts, known_hosts=self.known_hosts_file, dry=self.args.dry)
 
         else:
             # Copy the SSH keys to the hosts
@@ -88,7 +95,7 @@ class Main(object):
             for host in hosts:
                 host.password = self.args.password
 
-            self.copy_ssh_keys(hosts)
+            self.copy_ssh_keys(hosts, dry=self.args.dry)
 
     def parse_args(self, argv):
         parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
@@ -109,6 +116,7 @@ class Main(object):
                             help='the password to log into the remote hosts.  It is NOT SECURED to set the password '
                                  'that way, since it stays in the bash history.  Password can also be sent on the '
                                  'STDIN.')
+        parser.add_argument('-R', '--remove', action='store_true', help='remove the hosts from the known_hosts file.')
         return parser.parse_args(argv[1:])
 
     def parse_hosts(self, hosts, config):
@@ -131,12 +139,13 @@ class Main(object):
 
         return host_list
 
-    def add_to_known_hosts(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS):
+    def add_to_known_hosts(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
         """
         Add the remote host SSH public key to the `known_hosts` file.
 
         :param hosts: the list of the remote `Host` objects.
         :param known_hosts: the `known_hosts` file to store the SSH public keys.
+        :param dry: perform a dry run.
         """
         to_add = []
         with open(known_hosts) as fh:
@@ -147,22 +156,40 @@ class Main(object):
         stdout, stderr = p.communicate()
         for line in stdout.splitlines():
             line = line.strip()
-            print('[{0}] Add the remote host SSH public key to [{1}]...'
-                  .format(line.split(' ', 1)[0], known_hosts))
+            print('[{0}] Add the remote host SSH public key to [{1}]...'.format(line.split(' ', 1)[0], known_hosts))
             if line not in known_hosts_set:
                 known_hosts_set.add(line)
                 to_add.append('{0}\n'.format(line))
 
-        if not self.args.dry:
+        if not dry:
             with open(known_hosts, 'a') as fh:
                 fh.writelines(to_add)
 
-    def copy_ssh_keys(self, hosts):
+    def remove_from_known_hosts(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
+        """
+        Remove the remote host SSH public key to the `known_hosts` file.
+
+        :param hosts: the list of the remote `Host` objects.
+        :param known_hosts: the `known_hosts` file to store the SSH public keys.
+        :param dry: perform a dry run.
+        """
+        for host in hosts:
+            print('[{0}] Removing the remote host SSH public key from [{1}]...'.format(host.hostname, known_hosts))
+            cmd = ['ssh-keygen', '-f', known_hosts, '-R', host.hostname]
+            if not dry:
+                try:
+                    subprocess.check_call(cmd)
+                except subprocess.CalledProcessError as ex:
+                    print('Error: {0}'.format(ex))
+
+    def copy_ssh_keys(self, hosts, dry=False):
         """
         Copy the SSH keys to the `host`.
 
         :param hosts: the list of `Host` objects to copy the SSH keys to.
+        :param dry: perform a dry run.
         """
+        # TODO: for dry-run, prevent the known_hosts file to be changed
         for host in hosts:
             print('[{0}] Copy the SSH public key [{1}]...'.format(host.hostname, self.pub_key))
             with paramiko.SSHClient() as client:
@@ -174,7 +201,7 @@ class Main(object):
                     cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
     k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''\
                             .format(self.pub_key_content)
-                    if not self.args.dry:
+                    if not dry:
                         client.exec_command(cmd)
                 except (paramiko.ssh_exception.SSHException, socket.error) as ex:
                     print('Error: {0}'.format(ex))
