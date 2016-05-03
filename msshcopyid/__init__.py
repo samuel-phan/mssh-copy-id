@@ -57,6 +57,10 @@ class Main(object):
         # Parse the hosts to extract the username if given
         hosts = parse_hosts(self.args.hosts, config)  # list of Host objects
 
+        # Check dry run
+        if self.args.dry:
+            print('Dry run: nothing will be changed.')
+
         # Check the action to perform
         if self.args.key or self.args.known_hosts:
             # Add the remote hosts' SSH keys only
@@ -98,6 +102,7 @@ class Main(object):
                                  '~/.ssh/known_hosts file.')
         parser.add_argument('-K', '--known-hosts',
                             help='same as --key but with specifying the "known_hosts" file.')
+        parser.add_argument('-n', '--dry', action='store_true', help='do a dry run. Do not change anything.')
         parser.add_argument('-P', '--password',
                             help='the password to log into the remote hosts.  It is NOT SECURED to set the password '
                                  'that way, since it stays in the bash history.  Password can also be sent on the '
@@ -126,8 +131,9 @@ class Main(object):
                 known_hosts_set.add(line)
                 to_add.append('{0}\n'.format(line))
 
-        with open(known_hosts, 'a') as fh:
-            fh.writelines(to_add)
+        if not self.args.dry:
+            with open(known_hosts, 'a') as fh:
+                fh.writelines(to_add)
 
     def copy_ssh_keys(self, hosts):
         """
@@ -146,7 +152,8 @@ class Main(object):
                     cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
     k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''\
                             .format(self.pub_key_content)
-                    client.exec_command(cmd)
+                    if not self.args.dry:
+                        client.exec_command(cmd)
                 except paramiko.ssh_exception.SSHException as ex:
                     print('Error: {0}'.format(ex))
 
