@@ -1,7 +1,9 @@
 from __future__ import print_function
 
 import argparse
+import datetime
 import getpass
+import logging
 import os
 import socket
 import subprocess
@@ -19,9 +21,14 @@ DEFAULT_SSH_RSA = os.path.join(DEFAULT_SSH_DIR, 'id_rsa')
 DEFAULT_SSH_PORT = 22
 
 
+logger = logging.getLogger(__name__)
+
+
 def main():
+    start_dt = datetime.datetime.now()
     mc = Main()
     mc.main()
+    logger.debug('Elapsed time: %s', datetime.datetime.now() - start_dt)
 
 
 class Main(object):
@@ -37,21 +44,29 @@ class Main(object):
         # Parse input arguments
         self.args = self.parse_args(sys.argv)
 
+        # Init logging
+        sh = logging.StreamHandler()
+        logger.addHandler(sh)
+        if self.args.verbose:
+            sh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+            logger.setLevel(logging.DEBUG)
+        else:
+            sh.setFormatter(logging.Formatter('%(message)s'))
+            logger.setLevel(logging.INFO)
+
         # Check SSH key argument
         if not self.args.identity:
-            self.args.identity = os.path.expanduser(DEFAULT_SSH_RSA)
-            if not os.path.exists(self.args.identity):
-                self.args.identity = os.path.expanduser(DEFAULT_SSH_DSA)
-                if not os.path.exists(self.args.identity):
-                    print('Error: Cannot find any SSH keys in {0} and {1}.'.format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA),
-                          file=sys.stderr)
-                    sys.exit(1)
+            if os.path.exists(DEFAULT_SSH_RSA):
+                self.args.identity = DEFAULT_SSH_RSA
+            elif os.path.exists(DEFAULT_SSH_DSA):
+                self.args.identity = DEFAULT_SSH_DSA
+            else:
+                logger.error('Error: Cannot find any SSH keys in %s and %s.', DEFAULT_SSH_RSA, DEFAULT_SSH_DSA)
+                sys.exit(1)
+            logger.debug('Found SSH key: %s', self.args.identity)
+
         self.priv_key = self.args.identity
         self.pub_key = '{0}.pub'.format(self.args.identity)
-
-        # Read the public key
-        with open(self.pub_key) as fh:
-            self.pub_key_content = fh.read().strip()
 
         # Load ~/.ssh/config if it exists
         config = load_config()
@@ -61,7 +76,7 @@ class Main(object):
 
         # Check dry run
         if self.args.dry:
-            print('Dry run: nothing will be changed.')
+            logger.info('Dry run: nothing will be changed.')
 
         # Check the action to perform
         if self.args.add or self.args.remove:
@@ -81,6 +96,13 @@ class Main(object):
 
         else:
             # Copy the SSH keys to the hosts
+
+            # Read the public key
+            if not os.path.exists(self.pub_key):
+                logger.error('Error: The SSH public key [%s] does not exist.', self.pub_key)
+                sys.exit(1)
+            with open(self.pub_key) as fh:
+                self.pub_key_content = fh.read().strip()
 
             # Check that a password is given
             if not self.args.password:
@@ -113,6 +135,7 @@ class Main(object):
                                  'STDIN.')
         parser.add_argument('-R', '--remove', action='store_true',
                             help='don\'t copy the SSH keys, but instead, remove the hosts from the known_hosts file')
+        parser.add_argument('-v', '--verbose', action='store_true', help='enable verbose mode.')
         return parser.parse_args(argv[1:])
 
     def parse_hosts(self, hosts, config):
@@ -148,11 +171,12 @@ class Main(object):
             known_hosts_set = set(line.strip() for line in fh.readlines())
 
         cmd = ['ssh-keyscan'] + [host.hostname for host in hosts]
+        logger.debug('Call: %s',  ' '.join(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         for line in stdout.splitlines():
             line = line.strip()
-            print('[{0}] Add the remote host SSH public key to [{1}]...'.format(line.split(' ', 1)[0], known_hosts))
+            logger.info('[%s] Add the remote host SSH public key to [%s]...', line.split(' ', 1)[0], known_hosts)
             if line not in known_hosts_set:
                 known_hosts_set.add(line)
                 to_add.append('{0}\n'.format(line))
@@ -170,13 +194,14 @@ class Main(object):
         :param dry: perform a dry run.
         """
         for host in hosts:
-            print('[{0}] Removing the remote host SSH public key from [{1}]...'.format(host.hostname, known_hosts))
+            logger.info('[%s] Removing the remote host SSH public key from [%s]...', host.hostname, known_hosts)
             cmd = ['ssh-keygen', '-f', known_hosts, '-R', host.hostname]
+            logger.debug('Call: %s', ' '.join(cmd))
             if not dry:
                 try:
                     subprocess.check_call(cmd)
                 except subprocess.CalledProcessError as ex:
-                    print('Error: {0}'.format(ex))
+                    logger.error('Error: %s', ex)
 
     def copy_ssh_keys(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
         """
@@ -187,20 +212,22 @@ class Main(object):
         :param dry: perform a dry run.
         """
         for host in hosts:
-            print('[{0}] Copy the SSH public key [{1}]...'.format(host.hostname, self.pub_key))
+            logger.info('[%s] Copy the SSH public key [%s]...', host.hostname, self.pub_key)
             if not dry:
                 with paramiko.SSHClient() as client:
                     if not self.args.no_add_host:
                         client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                     client.load_host_keys(filename=known_hosts)
                     try:
-                        client.connect(host.hostname, port=host.port, username=host.user, password=host.password, key_filename=self.priv_key)
+                        client.connect(host.hostname, port=host.port, username=host.user, password=host.password,
+                                       key_filename=self.priv_key)
                         cmd = (r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
-    k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''
-                               .format( self.pub_key_content))
+k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''
+                               .format(self.pub_key_content))
+                        logger.debug('Run on [%s]: %s', host.hostname, cmd)
                         client.exec_command(cmd)
                     except (paramiko.ssh_exception.SSHException, socket.error) as ex:
-                        print('Error: {0}'.format(ex))
+                        logger.error('Error: %s', ex)
 
 
 def load_config(config=DEFAULT_SSH_CONFIG):
@@ -208,6 +235,7 @@ def load_config(config=DEFAULT_SSH_CONFIG):
     if os.path.isfile(config):
         with open(config) as fh:
             config_obj.parse(fh)
+        logger.debug('Loaded SSH configuration from [%s]', config)
     return config_obj
 
 
