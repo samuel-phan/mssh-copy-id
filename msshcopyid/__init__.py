@@ -186,22 +186,21 @@ class Main(object):
         :param known_hosts: the `known_hosts` file to store the SSH public keys.
         :param dry: perform a dry run.
         """
-        # TODO: for dry-run, prevent the known_hosts file to be changed
         for host in hosts:
             print('[{0}] Copy the SSH public key [{1}]...'.format(host.hostname, self.pub_key))
-            with paramiko.SSHClient() as client:
-                if not self.args.no_add_host:
-                    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-                client.load_host_keys(filename=known_hosts)
-                try:
-                    client.connect(host.hostname, port=host.port, username=host.user, password=host.password, key_filename=self.priv_key)
-                    cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
-    k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''\
-                            .format(self.pub_key_content)
-                    if not dry:
+            if not dry:
+                with paramiko.SSHClient() as client:
+                    if not self.args.no_add_host:
+                        client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+                    client.load_host_keys(filename=known_hosts)
+                    try:
+                        client.connect(host.hostname, port=host.port, username=host.user, password=host.password, key_filename=self.priv_key)
+                        cmd = (r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
+    k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''
+                               .format( self.pub_key_content))
                         client.exec_command(cmd)
-                except (paramiko.ssh_exception.SSHException, socket.error) as ex:
-                    print('Error: {0}'.format(ex))
+                    except (paramiko.ssh_exception.SSHException, socket.error) as ex:
+                        print('Error: {0}'.format(ex))
 
 
 def load_config(config=DEFAULT_SSH_CONFIG):
