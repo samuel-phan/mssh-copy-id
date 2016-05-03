@@ -91,7 +91,7 @@ class Main(object):
             for host in hosts:
                 host.password = self.args.password
 
-            self.copy_ssh_keys(hosts, dry=self.args.dry)
+            self.copy_ssh_keys(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
 
     def parse_args(self, argv):
         parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
@@ -178,11 +178,12 @@ class Main(object):
                 except subprocess.CalledProcessError as ex:
                     print('Error: {0}'.format(ex))
 
-    def copy_ssh_keys(self, hosts, dry=False):
+    def copy_ssh_keys(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
         """
         Copy the SSH keys to the `host`.
 
         :param hosts: the list of `Host` objects to copy the SSH keys to.
+        :param known_hosts: the `known_hosts` file to store the SSH public keys.
         :param dry: perform a dry run.
         """
         # TODO: for dry-run, prevent the known_hosts file to be changed
@@ -191,7 +192,7 @@ class Main(object):
             with paramiko.SSHClient() as client:
                 if not self.args.no_add_host:
                     client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-                client.load_host_keys(filename=DEFAULT_KNOWN_HOSTS)
+                client.load_host_keys(filename=known_hosts)
                 try:
                     client.connect(host.hostname, port=host.port, username=host.user, password=host.password, key_filename=self.priv_key)
                     cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
