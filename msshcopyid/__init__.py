@@ -3,6 +3,7 @@ from __future__ import print_function
 import argparse
 import getpass
 import os
+import socket
 import subprocess
 import sys
 
@@ -55,7 +56,7 @@ class Main(object):
         config = load_config()
 
         # Parse the hosts to extract the username if given
-        hosts = parse_hosts(self.args.hosts, config)  # list of Host objects
+        hosts = self.parse_hosts(self.args.hosts, config)  # list of Host objects
 
         # Check dry run
         if self.args.dry:
@@ -103,11 +104,32 @@ class Main(object):
         parser.add_argument('-K', '--known-hosts',
                             help='same as --key but with specifying the "known_hosts" file.')
         parser.add_argument('-n', '--dry', action='store_true', help='do a dry run. Do not change anything.')
+        parser.add_argument('-p', '--port', type=int, help='the SSH port for the remote hosts.')
         parser.add_argument('-P', '--password',
                             help='the password to log into the remote hosts.  It is NOT SECURED to set the password '
                                  'that way, since it stays in the bash history.  Password can also be sent on the '
                                  'STDIN.')
         return parser.parse_args(argv[1:])
+
+    def parse_hosts(self, hosts, config):
+        host_list = []  # list of Host objects
+        current_user = getpass.getuser()
+        for host in hosts:
+            d = config.lookup(host)
+
+            # hostname & user
+            if '@' in host:
+                user, hostname = host.split('@', 1)
+            else:
+                hostname = host
+                user = d.get('user', current_user)
+
+            # port
+            port = self.args.port or d.get('port', DEFAULT_SSH_PORT)
+
+            host_list.append(Host(hostname=hostname, port=port, user=user))
+
+        return host_list
 
     def add_to_known_hosts(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS):
         """
@@ -148,13 +170,13 @@ class Main(object):
                     client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 client.load_host_keys(filename=DEFAULT_KNOWN_HOSTS)
                 try:
-                    client.connect(host.hostname, username=host.user, password=host.password, key_filename=self.priv_key)
+                    client.connect(host.hostname, port=host.port, username=host.user, password=host.password, key_filename=self.priv_key)
                     cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
     k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''\
                             .format(self.pub_key_content)
                     if not self.args.dry:
                         client.exec_command(cmd)
-                except paramiko.ssh_exception.SSHException as ex:
+                except (paramiko.ssh_exception.SSHException, socket.error) as ex:
                     print('Error: {0}'.format(ex))
 
 
@@ -164,21 +186,6 @@ def load_config(config=DEFAULT_SSH_CONFIG):
         with open(config) as fh:
             config_obj.parse(fh)
     return config_obj
-
-
-def parse_hosts(hosts, config):
-    host_list = []  # list of Host objects
-    current_user = getpass.getuser()
-    for host in hosts:
-        d = config.lookup(host)
-        if '@' in host:
-            user, hostname = host.split('@', 1)
-        else:
-            user = d.get('user', current_user)
-            hostname = host
-        host_list.append(Host(hostname=hostname, port=d.get('port', DEFAULT_SSH_PORT), user=user))
-
-    return host_list
 
 
 class Host(object):
