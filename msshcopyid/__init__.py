@@ -32,7 +32,6 @@ class Main(object):
         self.priv_key = None
         self.pub_key = None
         self.pub_key_content = None
-        self.known_hosts_file = DEFAULT_KNOWN_HOSTS
 
     def main(self):
         # Parse input arguments
@@ -65,23 +64,20 @@ class Main(object):
             print('Dry run: nothing will be changed.')
 
         # Check the action to perform
-        if self.args.key or self.args.known_hosts or self.args.remove:
+        if self.args.add or self.args.remove:
             # Action on the known_hosts file
 
-            if self.args.known_hosts:
-                self.known_hosts_file = self.args.known_hosts
-
             # Check that known_hosts file exists
-            if not os.path.exists(self.known_hosts_file):
-                with open(self.known_hosts_file, 'w'):
+            if not os.path.exists(self.args.known_hosts):
+                with open(self.args.known_hosts, 'w'):
                     pass
 
-            if self.args.remove:
-                # Remove the hosts from the known_hosts file
-                self.remove_from_known_hosts(hosts, known_hosts=self.known_hosts_file, dry=self.args.dry)
+            if self.args.add:
+                # Add the hosts to the known_hosts
+                self.add_to_known_hosts(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
             else:
-                # Add the remote hosts' SSH public keys to the known_hosts
-                self.add_to_known_hosts(hosts, known_hosts=self.known_hosts_file, dry=self.args.dry)
+                # Remove the hosts from the known_hosts file
+                self.remove_from_known_hosts(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
 
         else:
             # Copy the SSH keys to the hosts
@@ -101,22 +97,22 @@ class Main(object):
         parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
         parser.add_argument('hosts', metavar='host', nargs='+',
                             help='the remote hosts to copy the keys to.  Syntax: [user@]hostname')
+        parser.add_argument('-a', '--add', action='store_true',
+                            help='don\'t copy the SSH keys, but instead, add the hosts to the known_hosts file')
         parser.add_argument('-A', '--no-add-host', action='store_true',
                             help='don\'t add automatically new hosts into "known_hosts" file')
         parser.add_argument('-i', '--identity', help='the SSH identity file. Default: {0} or {1}'
                                                      .format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA))
-        parser.add_argument('-k', '--key', action='store_true',
-                            help='don\'t copy the SSH keys, but instead, add the remote hosts SSH public keys to the '
-                                 '~/.ssh/known_hosts file.')
-        parser.add_argument('-K', '--known-hosts',
-                            help='same as --key but with specifying the "known_hosts" file.')
-        parser.add_argument('-n', '--dry', action='store_true', help='do a dry run. Do not change anything.')
-        parser.add_argument('-p', '--port', type=int, help='the SSH port for the remote hosts.')
+        parser.add_argument('-k', '--known-hosts', default=DEFAULT_KNOWN_HOSTS,
+                            help='the known_hosts file to use. Default: {0}'.format(DEFAULT_KNOWN_HOSTS))
+        parser.add_argument('-n', '--dry', action='store_true', help='do a dry run. Do not change anything')
+        parser.add_argument('-p', '--port', type=int, help='the SSH port for the remote hosts')
         parser.add_argument('-P', '--password',
                             help='the password to log into the remote hosts.  It is NOT SECURED to set the password '
                                  'that way, since it stays in the bash history.  Password can also be sent on the '
                                  'STDIN.')
-        parser.add_argument('-R', '--remove', action='store_true', help='remove the hosts from the known_hosts file.')
+        parser.add_argument('-R', '--remove', action='store_true',
+                            help='don\'t copy the SSH keys, but instead, remove the hosts from the known_hosts file')
         return parser.parse_args(argv[1:])
 
     def parse_hosts(self, hosts, config):
