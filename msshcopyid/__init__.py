@@ -89,6 +89,8 @@ class Main(object):
         parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
         parser.add_argument('hosts', metavar='host', nargs='+',
                             help='the remote hosts to copy the keys to.  Syntax: [user@]hostname')
+        parser.add_argument('-A', '--no-add-host', action='store_true',
+                            help='don\'t add automatically new hosts into "known_hosts" file')
         parser.add_argument('-i', '--identity', help='the SSH identity file. Default: {0} or {1}'
                                                      .format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA))
         parser.add_argument('-k', '--key', action='store_true',
@@ -136,13 +138,17 @@ class Main(object):
         for host in hosts:
             print('[{0}] Copy the SSH public key [{1}]...'.format(host.hostname, self.pub_key))
             with paramiko.SSHClient() as client:
-                client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+                if not self.args.no_add_host:
+                    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 client.load_host_keys(filename=DEFAULT_KNOWN_HOSTS)
-                client.connect(host.hostname, username=host.user, password=host.password, key_filename=self.priv_key)
-                cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
-k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''\
-                        .format(self.pub_key_content)
-                client.exec_command(cmd)
+                try:
+                    client.connect(host.hostname, username=host.user, password=host.password, key_filename=self.priv_key)
+                    cmd = r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
+    k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''\
+                            .format(self.pub_key_content)
+                    client.exec_command(cmd)
+                except paramiko.ssh_exception.SSHException as ex:
+                    print('Error: {0}'.format(ex))
 
 
 def load_config(config=DEFAULT_SSH_CONFIG):
