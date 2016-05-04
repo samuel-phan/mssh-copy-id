@@ -127,7 +127,6 @@ pyenv deactivate
 pyenv virtualenv-delete mssh-copy-id
 ```
 
-<a name="how-to-install-for-development"></a>
 ## How to install for development
 
 Go to the project directory, and run:
@@ -144,7 +143,7 @@ pip install -e .[test]
 
 ## How to run the unit tests
 
-You need to [install the libraries for tests](#how-to-install-for-development).
+You need to install the libraries for tests (see above).
 
 1. One way is to run:
 
