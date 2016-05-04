@@ -104,6 +104,10 @@ class Main(object):
             with open(self.pub_key) as fh:
                 self.pub_key_content = fh.read().strip()
 
+            if self.args.clear:
+                # Clear the hosts from the known_hosts file
+                self.remove_from_known_hosts(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+
             self.run_copy_ssh_keys(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
 
     def parse_args(self, argv):
@@ -111,9 +115,11 @@ class Main(object):
         parser.add_argument('hosts', metavar='host', nargs='+',
                             help='the remote hosts to copy the keys to.  Syntax: [user@]hostname')
         parser.add_argument('-a', '--add', action='store_true',
-                            help='don\'t copy the SSH keys, but instead, add the hosts to the known_hosts file')
+                            help='don\'t copy the SSH keys, but instead, add the hosts to the "known_hosts" file')
         parser.add_argument('-A', '--no-add-host', action='store_true',
                             help='don\'t add automatically new hosts into "known_hosts" file')
+        parser.add_argument('-C', '--clear', action='store_true',
+                            help='clear the hosts from the "known_hosts" file before copying the SSH keys')
         parser.add_argument('-i', '--identity', help='the SSH identity file. Default: {0} or {1}'
                                                      .format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA))
         parser.add_argument('-k', '--known-hosts', default=DEFAULT_KNOWN_HOSTS,
@@ -125,7 +131,7 @@ class Main(object):
                                  'that way, since it stays in the bash history.  Password can also be sent on the '
                                  'STDIN.')
         parser.add_argument('-R', '--remove', action='store_true',
-                            help='don\'t copy the SSH keys, but instead, remove the hosts from the known_hosts file')
+                            help='don\'t copy the SSH keys, but instead, remove the hosts from the "known_hosts" file')
         parser.add_argument('-v', '--verbose', action='store_true', help='enable verbose mode.')
         return parser.parse_args(argv[1:])
 
