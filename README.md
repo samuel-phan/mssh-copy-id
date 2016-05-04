@@ -19,14 +19,38 @@ TODO
 # How to use
 
 ```
-usage: mssh-copy-id [-i IDENTITY_FILE] [user@]hostname ...
+usage: mssh-copy-id [-h] [-a] [-A] [-i IDENTITY] [-k KNOWN_HOSTS] [-n]
+                    [-p PORT] [-P PASSWORD] [-R] [-v]
+                    host [host ...]
+
+Massively copy SSH keys.
+
+positional arguments:
+  host                  the remote hosts to copy the keys to. Syntax:
+                        [user@]hostname
 
 optional arguments:
- -h, --help      show this help message and exit
- -i, --identity  the SSH identity file. Default: ~/.ssh/id_rsa
- -P, --password  the password of the servers.
-                 It is NOT SECURED to set the password that way, since it stays in the bash history.
-                 Password can also be sent on the STDIN.
+  -h, --help            show this help message and exit
+  -a, --add             don't copy the SSH keys, but instead, add the hosts to
+                        the known_hosts file
+  -A, --no-add-host     don't add automatically new hosts into "known_hosts"
+                        file
+  -i IDENTITY, --identity IDENTITY
+                        the SSH identity file. Default:
+                        /home/xxx/.ssh/id_rsa or /home/xxx/.ssh/id_dsa
+  -k KNOWN_HOSTS, --known-hosts KNOWN_HOSTS
+                        the known_hosts file to use. Default:
+                        /home/xxx/.ssh/known_hosts
+  -n, --dry             do a dry run. Do not change anything
+  -p PORT, --port PORT  the SSH port for the remote hosts
+  -P PASSWORD, --password PASSWORD
+                        the password to log into the remote hosts. It is NOT
+                        SECURED to set the password that way, since it stays
+                        in the bash history. Password can also be sent on the
+                        STDIN.
+  -R, --remove          don't copy the SSH keys, but instead, remove the hosts
+                        from the known_hosts file
+  -v, --verbose         enable verbose mode.
 ```
 
 ## Examples
