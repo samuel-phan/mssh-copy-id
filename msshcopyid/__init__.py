@@ -61,7 +61,7 @@ class Main(object):
             elif os.path.exists(DEFAULT_SSH_DSA):
                 self.args.identity = DEFAULT_SSH_DSA
             else:
-                logger.error('Error: Cannot find any SSH keys in %s and %s.', DEFAULT_SSH_RSA, DEFAULT_SSH_DSA)
+                logger.error(format_error('Cannot find any SSH keys in %s and %s.'), DEFAULT_SSH_RSA, DEFAULT_SSH_DSA)
                 sys.exit(1)
             logger.debug('Found SSH key: %s', self.args.identity)
 
@@ -99,21 +99,12 @@ class Main(object):
 
             # Read the public key
             if not os.path.exists(self.pub_key):
-                logger.error('Error: The SSH public key [%s] does not exist.', self.pub_key)
+                logger.error(format_error('The SSH public key [%s] does not exist.'), self.pub_key)
                 sys.exit(1)
             with open(self.pub_key) as fh:
                 self.pub_key_content = fh.read().strip()
 
-            # Check that a password is given
-            if not self.args.password:
-                if not sys.stdin.isatty():
-                    self.args.password = sys.stdin.readline().strip()
-                else:
-                    self.args.password = getpass.getpass('Enter the common password: ')
-            for host in hosts:
-                host.password = self.args.password
-
-            self.copy_ssh_keys(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+            self.run_copy_ssh_keys(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
 
     def parse_args(self, argv):
         parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
@@ -201,11 +192,11 @@ class Main(object):
                 try:
                     subprocess.check_call(cmd)
                 except subprocess.CalledProcessError as ex:
-                    logger.error('Error: %s', ex)
+                    logger.error(format_error(format_exception(ex)))
 
-    def copy_ssh_keys(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
+    def run_copy_ssh_keys(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
         """
-        Copy the SSH keys to the `host`.
+        Copy the SSH keys to the given hosts.
 
         :param hosts: the list of `Host` objects to copy the SSH keys to.
         :param known_hosts: the `known_hosts` file to store the SSH public keys.
@@ -214,20 +205,48 @@ class Main(object):
         for host in hosts:
             logger.info('[%s] Copy the SSH public key [%s]...', host.hostname, self.pub_key)
             if not dry:
-                with paramiko.SSHClient() as client:
-                    if not self.args.no_add_host:
-                        client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-                    client.load_host_keys(filename=known_hosts)
-                    try:
+                self.copy_ssh_keys(host, hosts, known_hosts=known_hosts)
+
+    def copy_ssh_keys(self, host, hosts, known_hosts=DEFAULT_KNOWN_HOSTS):
+        """
+        Copy the SSH keys to the given host.
+
+        :param host: the `Host` object to copy the SSH keys to.
+        :param hosts: the list of `Host` objects (used to update the password if needed).
+        :param known_hosts: the `known_hosts` file to store the SSH public keys.
+        """
+        with paramiko.SSHClient() as client:
+            if not self.args.no_add_host:
+                client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+            client.load_host_keys(filename=known_hosts)
+            try:
+                try:
+                    client.connect(host.hostname, port=host.port, username=host.user, password=host.password,
+                                   key_filename=self.priv_key)
+                except paramiko.ssh_exception.AuthenticationException:
+                    if host.password:
+                        # A password was given, and it is wrong
+                        raise
+                    else:
+                        # Ask for password & update the password for all the hosts
+                        if not self.args.password:
+                            self.args.password = get_password()
+                        for h in hosts:
+                            h.password = self.args.password
+
+                        # Try to connect again
                         client.connect(host.hostname, port=host.port, username=host.user, password=host.password,
                                        key_filename=self.priv_key)
-                        cmd = (r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
+
+                if client.get_transport().is_active():
+                    cmd = (r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
 k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''
-                               .format(self.pub_key_content))
-                        logger.debug('Run on [%s]: %s', host.hostname, cmd)
-                        client.exec_command(cmd)
-                    except (paramiko.ssh_exception.SSHException, socket.error) as ex:
-                        logger.error('Error: %s', ex)
+                           .format(self.pub_key_content))
+                    logger.debug('Run on [%s]: %s', host.hostname, cmd)
+                    client.exec_command(cmd)
+
+            except (paramiko.ssh_exception.SSHException, socket.error) as ex:
+                logger.error(format_error(format_exception(ex)))
 
 
 def load_config(config=DEFAULT_SSH_CONFIG):
@@ -237,6 +256,22 @@ def load_config(config=DEFAULT_SSH_CONFIG):
             config_obj.parse(fh)
         logger.debug('Loaded SSH configuration from [%s]', config)
     return config_obj
+
+
+def get_password():
+    if not sys.stdin.isatty():
+        password = sys.stdin.readline().strip()
+    else:
+        password = getpass.getpass('Enter the password: ')
+    return password
+
+
+def format_error(msg):
+    return 'Error: {0}'.format(msg)
+
+
+def format_exception(ex):
+    return '{0}: {1}'.format(type(ex).__name__, ex)
 
 
 class Host(object):
