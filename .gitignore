@@ -1,7 +1,11 @@
 /.idea/
+/.eggs/
 /build/
 /dist/
 /mssh_copy_id.egg-info/
 /tmp/
 
+/.coverage
+
 *.pyc
+*,cover

@@ -10,6 +10,8 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+tests_require = ['mock', 'pytest', 'pytest-runner', 'pytest-cov', 'coverage']
+
 setup(
     name='mssh-copy-id',
 
@@ -69,15 +71,16 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['paramiko'],
+    install_requires=['paramiko>=1.7'],
+    tests_require=tests_require,
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        'dev': ['check-manifest'],
-        'test': ['coverage'],
+        # 'dev': ['check-manifest'],
+        'test': tests_require,
     },
 
     # If there are data files included in your packages that need to be

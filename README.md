@@ -127,7 +127,8 @@ pyenv deactivate
 pyenv virtualenv-delete mssh-copy-id
 ```
 
-## How to install `mssh-copy-id` for development
+<a name="how-to-install-for-development"></a>
+## How to install for development
 
 Go to the project directory, and run:
 
@@ -135,11 +136,27 @@ Go to the project directory, and run:
 pip install -e .
 ```
 
-To download the dev & test libs, you can run: (recommended for development)
- 
+To download the test libs, you can run: (recommended for development)
+
 ```
-pip install -e .[dev,test]
+pip install -e .[test]
 ```
+
+## How to run the unit tests
+
+You need to [install the libraries for tests](#how-to-install-for-development).
+
+1. One way is to run:
+
+    ```
+    python setup.py test
+    ```
+
+2. The other way that allows more control & coverage annotations:
+
+    ```
+    ./run-tests.sh
+    ```
 
 ## How to build
 
@@ -167,3 +184,10 @@ pip install mssh_copy_id-0.0.1-py2-none-any.whl
 ```
 
 You should be able to run `mssh-copy-id` as real production.
+
+## How to preview the `README.md` locally
+
+```
+pip install grip
+grip
+```
