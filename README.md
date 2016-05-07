@@ -220,10 +220,10 @@ You will find the Wheel package in the `dist` directory.
 
 * Create a new virtualenv:
 
-    ```
-    pyenv virtualenv 2.6.6 foo
-    pyenv activate foo
-    ```
+```
+pyenv virtualenv 2.6.6 foo
+pyenv activate foo
+```
 
 * Go to the `dist` directory, and run:
 
