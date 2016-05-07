@@ -97,7 +97,7 @@ cat file_that_contains_password | mssh-copy-id root@server{1..5}
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
 ```
 
-To use `pyenv`, you need to source it first:
+To use `pyenv`, you need to source it first. Go to the project source and source the file `pyenv.sh`:
 
 ```
 source pyenv.sh
