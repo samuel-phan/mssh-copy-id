@@ -289,3 +289,6 @@ class Host(object):
         self.port = port
         self.user = user
         self.password = password
+
+    def __repr__(self):
+        return '<{0} {1}>'.format(type(self).__name__, self.__dict__)
