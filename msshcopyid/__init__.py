@@ -35,12 +35,50 @@ class Main(object):
 
     def __init__(self):
         self.args = None
+        self.hosts = None
 
         self.priv_key = None
         self.pub_key = None
         self.pub_key_content = None
 
     def main(self):
+        self.init()
+
+        # Check dry run
+        if self.args.dry:
+            logger.info('Dry run: nothing will be changed.')
+
+        # Check the action to perform
+        if self.args.add or self.args.remove:
+            # Action on the known_hosts file
+
+            # Check that known_hosts file exists
+            if not os.path.exists(self.args.known_hosts):
+                with open(self.args.known_hosts, 'w'):
+                    pass
+
+            if self.args.add:
+                self.add_to_known_hosts(self.hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+            else:
+                self.remove_from_known_hosts(self.hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+
+        else:
+            # Copy the SSH keys to the hosts
+
+            # Read the public key
+            if not os.path.exists(self.pub_key):
+                logger.error(format_error('The SSH public key [%s] does not exist.'), self.pub_key)
+                sys.exit(1)
+            with open(self.pub_key) as fh:
+                self.pub_key_content = fh.read().strip()
+
+            if self.args.clear:
+                # Clear the hosts from the known_hosts file
+                self.remove_from_known_hosts(self.hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+
+            self.run_copy_ssh_keys(self.hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+
+    def init(self):
         # Parse input arguments
         self.args = self.parse_args(sys.argv)
 
@@ -72,43 +110,7 @@ class Main(object):
         config = load_config()
 
         # Parse the hosts to extract the username if given
-        hosts = self.parse_hosts(self.args.hosts, config)  # list of Host objects
-
-        # Check dry run
-        if self.args.dry:
-            logger.info('Dry run: nothing will be changed.')
-
-        # Check the action to perform
-        if self.args.add or self.args.remove:
-            # Action on the known_hosts file
-
-            # Check that known_hosts file exists
-            if not os.path.exists(self.args.known_hosts):
-                with open(self.args.known_hosts, 'w'):
-                    pass
-
-            if self.args.add:
-                # Add the hosts to the known_hosts
-                self.add_to_known_hosts(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
-            else:
-                # Remove the hosts from the known_hosts file
-                self.remove_from_known_hosts(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
-
-        else:
-            # Copy the SSH keys to the hosts
-
-            # Read the public key
-            if not os.path.exists(self.pub_key):
-                logger.error(format_error('The SSH public key [%s] does not exist.'), self.pub_key)
-                sys.exit(1)
-            with open(self.pub_key) as fh:
-                self.pub_key_content = fh.read().strip()
-
-            if self.args.clear:
-                # Clear the hosts from the known_hosts file
-                self.remove_from_known_hosts(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
-
-            self.run_copy_ssh_keys(hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
+        self.hosts = self.parse_hosts(self.args.hosts, config)  # list of Host objects
 
     def parse_args(self, argv):
         parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
