@@ -66,7 +66,7 @@ class TestMain(unittest.TestCase):
         mock_init.assert_called_once_with()
         mock_bopen.assert_called_once_with(self.main.pub_key)
         self.assertEqual(self.main.pub_key_content, 'pub key content')
-        self.assertFalse(mock_remove_from_known_hosts.called)
+        mock_remove_from_known_hosts.assert_not_called()
         mock_run_copy_ssh_keys.assert_called_once_with(self.main.hosts, known_hosts=self.main.args.known_hosts,
                                                        dry=self.main.args.dry)
 
@@ -193,7 +193,7 @@ class TestMain(unittest.TestCase):
         self.assertEqual(self.main.args, mock_parse_args.return_value)
 
         mock_logger.setLevel.assert_called_once_with(mock_logging.INFO)
-        self.assertFalse(mock_load_config.called)
+        mock_load_config.assert_not_called()
 
     @patch('getpass.getuser', return_value='me')
     def test_parse_hosts_no_port(self, mock_getuser):
@@ -231,9 +231,58 @@ class TestMain(unittest.TestCase):
         self.assertEqual(result[2].__dict__, {'hostname': 'server3', 'port': 12345, 'user': 'john', 'password': None})
         self.assertEqual(result[3].__dict__, {'hostname': 'server4', 'port': 12345, 'user': 'doe', 'password': None})
 
-    def test_add_to_known_hosts(self):
-        # TODO:
-        pass
+    @patch('subprocess.Popen')
+    def test_add_to_known_hosts(self, mock_popen):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = MagicMock()
+
+        server1_ssh_key = 'server1 ssh-rsa KRDZhqpguSRxeiqLseaD'
+        server2_ssh_key = 'server2 ssh-rsa AAAAB3NzaC1yc2EAAAAB'
+        server3_ssh_key = 'server3 ssh-rsa O2gDXC6h6QDXCaHo6pOH'
+        server4_ssh_key = 'server4 ssh-rsa hdHWpZ8fDvQArTUFCfgU'
+
+        keyscans = [server2_ssh_key,
+                    server3_ssh_key,
+                    server1_ssh_key]
+        mock_popen.return_value.communicate.return_value = ('\n'.join(keyscans), MagicMock())
+
+        known_hosts_content = [server1_ssh_key,
+                               server4_ssh_key]
+        mock_bopen = mock_open(read_data='\n'.join(known_hosts_content))
+
+        with patch('msshcopyid.open', mock_bopen):
+            self.main.add_to_known_hosts(hosts, known_hosts, dry=False)
+
+        mock_bopen.return_value.writelines.assert_any_call(['{0}\n'.format(k)
+                                                            for k in server2_ssh_key, server3_ssh_key])
+
+    @patch('subprocess.Popen')
+    def test_add_to_known_hosts_dry(self, mock_popen):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = MagicMock()
+
+        server1_ssh_key = 'server1 ssh-rsa KRDZhqpguSRxeiqLseaD'
+        server2_ssh_key = 'server2 ssh-rsa AAAAB3NzaC1yc2EAAAAB'
+        server3_ssh_key = 'server3 ssh-rsa O2gDXC6h6QDXCaHo6pOH'
+        server4_ssh_key = 'server4 ssh-rsa hdHWpZ8fDvQArTUFCfgU'
+
+        keyscans = [server2_ssh_key,
+                    server3_ssh_key,
+                    server1_ssh_key]
+        mock_popen.return_value.communicate.return_value = ('\n'.join(keyscans), MagicMock())
+
+        known_hosts_content = [server1_ssh_key,
+                               server4_ssh_key]
+        mock_bopen = mock_open(read_data='\n'.join(known_hosts_content))
+
+        with patch('msshcopyid.open', mock_bopen):
+            self.main.add_to_known_hosts(hosts, known_hosts, dry=True)
+
+        mock_bopen.return_value.writelines.assert_not_called()
 
     def test_remove_from_known_hosts(self):
         # TODO:
