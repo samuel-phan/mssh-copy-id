@@ -9,9 +9,88 @@ class TestMain(unittest.TestCase):
     def setUp(self):
         self.main = msshcopyid.Main()
 
-    def test_main(self):
-        # TODO:
-        pass
+    @patch('msshcopyid.Main.add_to_known_hosts')
+    @patch('msshcopyid.open', new_callable=mock_open)
+    @patch('os.path.exists', return_value=False)
+    @patch('msshcopyid.Main.init')
+    def test_main_add(self, mock_init, mock_exists, mock_bopen, mock_add_to_known_hosts):
+        self.main.args = MagicMock()
+        self.main.args.add = True
+
+        self.main.main()
+
+        mock_init.assert_called_once_with()
+        mock_bopen.assert_called_once_with(self.main.args.known_hosts, 'w')
+        mock_add_to_known_hosts.assert_called_once_with(self.main.hosts, known_hosts=self.main.args.known_hosts,
+                                                        dry=self.main.args.dry)
+
+    @patch('msshcopyid.Main.remove_from_known_hosts')
+    @patch('msshcopyid.open', new_callable=mock_open)
+    @patch('os.path.exists', return_value=False)
+    @patch('msshcopyid.Main.init')
+    def test_main_remove(self, mock_init, mock_exists, mock_bopen, mock_remove_from_known_hosts):
+        self.main.args = MagicMock()
+        self.main.args.add = False
+        self.main.args.remove = True
+
+        self.main.main()
+
+        mock_init.assert_called_once_with()
+        mock_bopen.assert_called_once_with(self.main.args.known_hosts, 'w')
+        mock_remove_from_known_hosts.assert_called_once_with(self.main.hosts, known_hosts=self.main.args.known_hosts,
+                                                             dry=self.main.args.dry)
+
+    @patch('os.path.exists', return_value=False)
+    @patch('msshcopyid.Main.init')
+    def test_main_copy_ssh_keys_no_pub_key(self, mock_init, mock_exists):
+        self.main.args = MagicMock()
+        self.main.args.add = False
+        self.main.args.remove = False
+
+        self.assertRaises(SystemExit, self.main.main)
+
+    @patch('msshcopyid.Main.run_copy_ssh_keys')
+    @patch('msshcopyid.Main.remove_from_known_hosts')
+    @patch('os.path.exists', return_value=True)
+    @patch('msshcopyid.Main.init')
+    def test_main_copy_ssh_keys(self, mock_init, mock_exists, mock_remove_from_known_hosts, mock_run_copy_ssh_keys):
+        self.main.args = MagicMock()
+        self.main.args.add = False
+        self.main.args.remove = False
+        self.main.args.clear = False
+        self.main.pub_key = MagicMock()
+
+        with patch('msshcopyid.open', mock_open(read_data='pub key content')) as mock_bopen:
+            self.main.main()
+
+        mock_init.assert_called_once_with()
+        mock_bopen.assert_called_once_with(self.main.pub_key)
+        self.assertEqual(self.main.pub_key_content, 'pub key content')
+        self.assertFalse(mock_remove_from_known_hosts.called)
+        mock_run_copy_ssh_keys.assert_called_once_with(self.main.hosts, known_hosts=self.main.args.known_hosts,
+                                                       dry=self.main.args.dry)
+
+    @patch('msshcopyid.Main.run_copy_ssh_keys')
+    @patch('msshcopyid.Main.remove_from_known_hosts')
+    @patch('os.path.exists', return_value=True)
+    @patch('msshcopyid.Main.init')
+    def test_main_copy_ssh_keys_clear(self, mock_init, mock_exists, mock_remove_from_known_hosts, mock_run_copy_ssh_keys):
+        self.main.args = MagicMock()
+        self.main.args.add = False
+        self.main.args.remove = False
+        self.main.args.clear = True
+        self.main.pub_key = MagicMock()
+
+        with patch('msshcopyid.open', mock_open(read_data='pub key content')) as mock_bopen:
+            self.main.main()
+
+        mock_init.assert_called_once_with()
+        mock_bopen.assert_called_once_with(self.main.pub_key)
+        self.assertEqual(self.main.pub_key_content, 'pub key content')
+        mock_remove_from_known_hosts.assert_called_once_with(self.main.hosts, known_hosts=self.main.args.known_hosts,
+                                                             dry=self.main.args.dry)
+        mock_run_copy_ssh_keys.assert_called_once_with(self.main.hosts, known_hosts=self.main.args.known_hosts,
+                                                       dry=self.main.args.dry)
 
     @patch('msshcopyid.Main.parse_hosts')
     @patch('msshcopyid.load_config')
