@@ -1,4 +1,7 @@
-from mock import MagicMock, mock_open, patch
+import subprocess
+
+import paramiko
+from mock import call, MagicMock, mock_open, patch
 import unittest
 
 import msshcopyid
@@ -253,7 +256,7 @@ class TestMain(unittest.TestCase):
         mock_bopen = mock_open(read_data='\n'.join(known_hosts_content))
 
         with patch('msshcopyid.open', mock_bopen):
-            self.main.add_to_known_hosts(hosts, known_hosts, dry=False)
+            self.main.add_to_known_hosts(hosts, known_hosts=known_hosts, dry=False)
 
         mock_bopen.return_value.writelines.assert_any_call(['{0}\n'.format(k)
                                                             for k in server2_ssh_key, server3_ssh_key])
@@ -280,21 +283,196 @@ class TestMain(unittest.TestCase):
         mock_bopen = mock_open(read_data='\n'.join(known_hosts_content))
 
         with patch('msshcopyid.open', mock_bopen):
-            self.main.add_to_known_hosts(hosts, known_hosts, dry=True)
+            self.main.add_to_known_hosts(hosts, known_hosts=known_hosts, dry=True)
 
         mock_bopen.return_value.writelines.assert_not_called()
 
-    def test_remove_from_known_hosts(self):
-        # TODO:
-        pass
+    @patch('subprocess.check_call')
+    def test_remove_from_known_hosts(self, mock_check_call):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = '/path/to/known_hosts'
 
-    def test_run_copy_ssh_keys(self):
-        # TODO:
-        pass
+        self.main.remove_from_known_hosts(hosts, known_hosts=known_hosts, dry=False)
 
-    def test_copy_ssh_keys(self):
-        # TODO:
-        pass
+        for host in hosts:
+            cmd = ['ssh-keygen', '-f', known_hosts, '-R', host.hostname]
+            mock_check_call.assert_any_call(cmd)
+
+    @patch('subprocess.check_call')
+    def test_remove_from_known_hosts_dry(self, mock_check_call):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = '/path/to/known_hosts'
+
+        self.main.remove_from_known_hosts(hosts, known_hosts=known_hosts, dry=True)
+
+        mock_check_call.assert_not_called()
+
+    @patch('msshcopyid.format_exception')
+    @patch('msshcopyid.format_error')
+    @patch('subprocess.check_call')
+    @patch('msshcopyid.logger')
+    def test_remove_from_known_hosts_error(self, mock_logger, mock_check_call, mock_format_error,
+                                           mock_format_exception):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = '/path/to/known_hosts'
+        cmds = []
+        check_call_side_effect = []
+        for host in hosts:
+            cmd = ['ssh-keygen', '-f', known_hosts, '-R', host.hostname]
+            cmds.append(cmd)
+            check_call_side_effect.append(subprocess.CalledProcessError(1, cmd))
+        mock_check_call.side_effect = check_call_side_effect
+
+        self.main.remove_from_known_hosts(hosts, known_hosts=known_hosts, dry=False)
+
+        for cmd, ex in zip(cmds, check_call_side_effect):
+            mock_check_call.assert_any_call(cmd)
+            mock_logger.error.assert_any_call(mock_format_error(mock_format_exception(ex)))
+
+    @patch('msshcopyid.Main.copy_ssh_keys')
+    def test_run_copy_ssh_keys(self, mock_copy_ssh_keys):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = MagicMock()
+
+        self.main.run_copy_ssh_keys(hosts, known_hosts=known_hosts, dry=False)
+
+        for host in hosts:
+            mock_copy_ssh_keys.assert_any_call(host, hosts, known_hosts=known_hosts)
+
+    @patch('msshcopyid.Main.copy_ssh_keys')
+    def test_run_copy_ssh_keys_dry(self, mock_copy_ssh_keys):
+        hosts = [msshcopyid.Host(hostname='server1'),
+                 msshcopyid.Host(hostname='server2'),
+                 msshcopyid.Host(hostname='server3')]
+        known_hosts = MagicMock()
+
+        self.main.run_copy_ssh_keys(hosts, known_hosts=known_hosts, dry=True)
+
+        mock_copy_ssh_keys.assert_not_called()
+
+    @patch('paramiko.client.AutoAddPolicy')
+    @patch('paramiko.SSHClient')
+    def test_copy_ssh_keys(self, mock_ssh_client, mock_auto_add_policy):
+        host1 = msshcopyid.Host(hostname='server1')
+        host2 = msshcopyid.Host(hostname='server2', port=12345, user='a_user', password='a_password')
+        host3 = msshcopyid.Host(hostname='server3')
+        hosts = [host1, host2, host3]
+        known_hosts = MagicMock()
+
+        self.main.args = MagicMock()
+        self.main.args.no_add_host = False
+        self.main.priv_key = MagicMock()
+        self.main.pub_key_content = 'ssh-rsa AAAAB3NzaC1yc2EAAAAD'
+
+        self.main.copy_ssh_keys(host2, hosts, known_hosts=known_hosts)
+
+        client = mock_ssh_client.return_value.__enter__.return_value
+        client.set_missing_host_key_policy.assert_called_once_with(mock_auto_add_policy.return_value)
+        client.connect.assert_called_once_with(host2.hostname, port=host2.port, username=host2.user,
+                                               password=host2.password, key_filename=self.main.priv_key)
+        cmd = (r'''mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
+k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/authorized_keys; fi'''
+               .format(self.main.pub_key_content))
+        client.exec_command.assert_called_once_with(cmd)
+
+    @patch('msshcopyid.format_exception')
+    @patch('msshcopyid.format_error')
+    @patch('msshcopyid.logger')
+    @patch('paramiko.SSHClient')
+    def test_copy_ssh_keys_no_add_host(self, mock_ssh_client, mock_logger, mock_format_error, mock_format_exception):
+        host1 = msshcopyid.Host(hostname='server1')
+        host2 = msshcopyid.Host(hostname='server2', port=12345, user='a_user', password='a_password')
+        host3 = msshcopyid.Host(hostname='server3')
+        hosts = [host1, host2, host3]
+        known_hosts = MagicMock()
+        client = mock_ssh_client.return_value.__enter__.return_value
+        ssh_exception = paramiko.ssh_exception.SSHException('ssh exception')
+        client.connect.side_effect = ssh_exception
+
+        self.main.args = MagicMock()
+        self.main.args.no_add_host = True
+        self.main.priv_key = MagicMock()
+        self.main.pub_key_content = 'ssh-rsa AAAAB3NzaC1yc2EAAAAD'
+
+        self.main.copy_ssh_keys(host2, hosts, known_hosts=known_hosts)
+
+        client.set_missing_host_key_policy.assert_not_called()
+        client.connect.assert_called_once_with(host2.hostname, port=host2.port, username=host2.user,
+                                               password=host2.password, key_filename=self.main.priv_key)
+        client.exec_command.assert_not_called()
+        mock_logger.error.assert_called_once_with(mock_format_error(mock_format_exception(ssh_exception)))
+
+    @patch('msshcopyid.format_exception')
+    @patch('msshcopyid.format_error')
+    @patch('msshcopyid.logger')
+    @patch('msshcopyid.get_password')
+    @patch('paramiko.client.AutoAddPolicy')
+    @patch('paramiko.SSHClient')
+    def test_copy_ssh_keys_ask_missing_password(self, mock_ssh_client, mock_auto_add_policy, mock_get_password,
+                                                mock_logger, mock_format_error, mock_format_exception):
+        host1 = msshcopyid.Host(hostname='server1')
+        host2 = msshcopyid.Host(hostname='server2', port=12345, user='a_user', password=None)
+        host3 = msshcopyid.Host(hostname='server3')
+        hosts = [host1, host2, host3]
+        known_hosts = MagicMock()
+        client = mock_ssh_client.return_value.__enter__.return_value
+        authentication_exception = paramiko.ssh_exception.AuthenticationException('authentication exception')
+        client.connect.side_effect = authentication_exception
+
+        self.main.args = MagicMock()
+        self.main.args.no_add_host = False
+        self.main.args.password = None
+        self.main.priv_key = MagicMock()
+        self.main.pub_key_content = 'ssh-rsa AAAAB3NzaC1yc2EAAAAD'
+
+        self.main.copy_ssh_keys(host2, hosts, known_hosts=known_hosts)
+
+        client.set_missing_host_key_policy.assert_called_once_with(mock_auto_add_policy.return_value)
+        client.connect.assert_has_calls([call(host2.hostname, port=host2.port, username=host2.user,
+                                              password=None, key_filename=self.main.priv_key),
+                                         call(host2.hostname, port=host2.port, username=host2.user,
+                                              password=host2.password, key_filename=self.main.priv_key)])
+        client.exec_command.assert_not_called()
+        mock_logger.error.assert_called_once_with(mock_format_error(mock_format_exception(authentication_exception)))
+
+    @patch('msshcopyid.format_exception')
+    @patch('msshcopyid.format_error')
+    @patch('msshcopyid.logger')
+    @patch('msshcopyid.get_password')
+    @patch('paramiko.client.AutoAddPolicy')
+    @patch('paramiko.SSHClient')
+    def test_copy_ssh_keys_wrong_password(self, mock_ssh_client, mock_auto_add_policy, mock_get_password, mock_logger,
+                                          mock_format_error, mock_format_exception):
+        host1 = msshcopyid.Host(hostname='server1')
+        host2 = msshcopyid.Host(hostname='server2', port=12345, user='a_user', password='wrong password')
+        host3 = msshcopyid.Host(hostname='server3')
+        hosts = [host1, host2, host3]
+        known_hosts = MagicMock()
+        client = mock_ssh_client.return_value.__enter__.return_value
+        authentication_exception = paramiko.ssh_exception.AuthenticationException('authentication exception')
+        client.connect.side_effect = authentication_exception
+
+        self.main.args = MagicMock()
+        self.main.args.no_add_host = False
+        self.main.args.password = None
+        self.main.priv_key = MagicMock()
+        self.main.pub_key_content = 'ssh-rsa AAAAB3NzaC1yc2EAAAAD'
+
+        self.main.copy_ssh_keys(host2, hosts, known_hosts=known_hosts)
+
+        client.set_missing_host_key_policy.assert_called_once_with(mock_auto_add_policy.return_value)
+        client.connect.assert_called_once_with(host2.hostname, port=host2.port, username=host2.user,
+                                               password=host2.password, key_filename=self.main.priv_key)
+        client.exec_command.assert_not_called()
+        mock_logger.error.assert_called_once_with(mock_format_error(mock_format_exception(authentication_exception)))
 
 
 class TestModule(unittest.TestCase):
