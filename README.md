@@ -118,9 +118,21 @@ More info:
 
 ## Install Python 2.6.6 and create a virtualenv
 
-Before installing any Python interpreters, please install the **required dependencies**.
+Before installing any Python interpreters, install the **required dependencies**.
 
-See https://github.com/yyuu/pyenv/wiki/Common-build-problems
+* Ubuntu/Debian:
+
+    ```
+    sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev
+    ```
+
+* Fedora/CentOS/RHEL:
+
+    ```
+    yum install -y zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel
+    ```
+
+Source: https://github.com/yyuu/pyenv/wiki/Common-build-problems
 
 Then install `gcc`:
 
