@@ -1,6 +1,6 @@
 # Description
 
-`mssh-copy-id` is a tool to copy SSH keys massively to multiple servers.
+`mssh-copy-id` is a tool to simplify the copy of SSH keys to multiple servers.
 
 # Installation
 

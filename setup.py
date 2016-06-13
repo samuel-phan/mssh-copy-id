@@ -24,7 +24,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://bitbucket.org/samuel-phan/mssh-copy-id',
+    url='https://github.com/samuel-phan/mssh-copy-id',
 
     # Author details
     author='Samuel Phan',

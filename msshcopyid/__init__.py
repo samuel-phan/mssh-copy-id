@@ -113,7 +113,7 @@ class Main(object):
         self.hosts = self.parse_hosts(self.args.hosts, config)  # list of Host objects
 
     def parse_args(self, argv):
-        parser = argparse.ArgumentParser(description='Massively copy SSH keys.')
+        parser = argparse.ArgumentParser(description='Copy SSH keys to multiple servers.')
         parser.add_argument('hosts', metavar='host', nargs='+',
                             help='the remote hosts to copy the keys to.  Syntax: [user@]hostname')
         parser.add_argument('-a', '--add', action='store_true',
