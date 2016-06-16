@@ -129,7 +129,7 @@ Before installing any Python interpreters, install the **required dependencies**
 * Fedora/CentOS/RHEL:
 
     ```
-    yum install -y zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel
+    sudo yum install -y zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel patch
     ```
 
 Source: https://github.com/yyuu/pyenv/wiki/Common-build-problems
@@ -137,7 +137,7 @@ Source: https://github.com/yyuu/pyenv/wiki/Common-build-problems
 Then install `gcc`:
 
 ```
-yum install -y gcc
+sudo yum install -y gcc
 ```
 
 * Install Python 2.6.6 (default version of CentOS 6):
@@ -187,7 +187,7 @@ We need to install Paramiko dependencies:
 * For CentOS:
 
     ```
-    yum install -y gcc libffi-devel python-devel openssl-devel
+    sudo yum install -y gcc libffi-devel python-devel openssl-devel
     ```
 
 Go to the project directory, and run:
