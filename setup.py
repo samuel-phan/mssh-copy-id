@@ -1,15 +1,6 @@
-# Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
-from os import path
 
-here = path.abspath(path.dirname(__file__))
-
-# Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
-
+long_description = '''mssh-copy-id is a command-line tool to copy SSH keys to multiple servers.'''
 tests_require = ['mock', 'pytest', 'pytest-runner', 'pytest-cov', 'coverage']
 
 setup(
@@ -71,7 +62,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['paramiko>=1.7'],
+    install_requires=['paramiko>=1.7', 'argparse'],
     tests_require=tests_require,
 
     # List additional groups of dependencies here (e.g. development

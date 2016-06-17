@@ -1,3 +1,3 @@
-include clean.sh pyenv.sh README.md run-tests.sh
+include clean.sh pyenv.sh LICENSE.txt README.md run-tests.sh
 recursive-include docs *
 recursive-include tests *.py
