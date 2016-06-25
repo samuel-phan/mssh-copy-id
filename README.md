@@ -1,6 +1,7 @@
 # Description
 
-`mssh-copy-id` is a tool to simplify the copy of SSH keys to multiple servers.
+`mssh-copy-id` is a tool to simplify the copy of SSH keys to multiple
+servers.
 
 # Installation
 
@@ -89,7 +90,8 @@ cat file_that_contains_password | mssh-copy-id root@server{1..5}
 
 ## Install `pyenv`
 
-`pyenv` is a tool that allows you to choose different versions of Python for different projects. It has built-in `virtualenv` support.
+`pyenv` is a tool that allows you to choose different versions of Python
+for different projects. It has built-in `virtualenv` support.
 
 ### Install `pyenv`
 
@@ -97,7 +99,8 @@ cat file_that_contains_password | mssh-copy-id root@server{1..5}
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
 ```
 
-To use `pyenv`, you need to source it first. Go to the project source and source the file `pyenv.sh`:
+To use `pyenv`, you need to source it first. Go to the project source
+and source the file `pyenv.sh`:
 
 ```
 source pyenv.sh
@@ -118,7 +121,8 @@ More info:
 
 ## Install Python 2.6.6 and create a virtualenv
 
-Before installing any Python interpreters, install the **required dependencies**.
+Before installing any Python interpreters, install the **required
+dependencies**.
 
 * Ubuntu/Debian:
 
@@ -160,7 +164,8 @@ sudo yum install -y gcc
     pyenv activate mssh-copy-id
     ```
 
-Every time you work on the project, remember to activate your virtualenv first.
+Every time you work on the project, remember to activate your virtualenv
+first.
 
 * Deactivate:
 
@@ -196,7 +201,8 @@ Go to the project directory, and run:
 pip install -e .
 ```
 
-To install the test libs as well, you can run: (recommended for development)
+To install the test libs as well, you can run: (recommended for
+development)
 
 ```
 pip install -e .[test]
@@ -220,6 +226,11 @@ You need to install the libraries for tests (see above).
 
 ## How to build
 
+### Wheel
+
+The python wheel package is more for development purpose, as it requires
+lib headers for dependencies and compilation tools to be installed.
+
 Go to the project directory, and run:
 
 ```
@@ -228,7 +239,11 @@ python setup.py bdist_wheel
 
 You will find the Wheel package in the `dist` directory.
 
-## How to test the installation `mssh-copy-id`
+#### Install the dependencies
+
+Same as [How to install for development](#how-to-install-for-development)
+
+#### Test the installation of the wheel package
 
 * Create a new virtualenv:
 
