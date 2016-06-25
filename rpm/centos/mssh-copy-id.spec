@@ -25,6 +25,7 @@ python setup.py build
 
 %install
 python setup.py install --skip-build --root %{buildroot}
+mv %{buildroot}%{_bindir}/mssh-copy-id.py %{buildroot}%{_bindir}/mssh-copy-id
 
 %check
 
