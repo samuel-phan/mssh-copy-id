@@ -226,7 +226,14 @@ You need to install the libraries for tests (see above).
 
 ## How to build
 
-### Wheel
+### How to build a wheel package
+
+#### Requirements
+
+Install the same dependencies as in
+[How to install for development](#how-to-install-for-development).
+
+#### Build the wheel package
 
 The python wheel package is more for development purpose, as it requires
 lib headers for dependencies and compilation tools to be installed.
@@ -238,10 +245,6 @@ python setup.py bdist_wheel
 ```
 
 You will find the Wheel package in the `dist` directory.
-
-#### Install the dependencies
-
-Same as [How to install for development](#how-to-install-for-development)
 
 #### Test the installation of the wheel package
 
@@ -259,6 +262,51 @@ pyenv activate foo
     ```
 
 You should be able to run `mssh-copy-id` as real production.
+
+### How to build an RPM package for CentOS 6
+
+#### Requirements
+
+* [Docker](https://docs.docker.com/): I tested with version `1.11.2` but
+  I assume that it will work on older versions.
+
+#### Build the docker image
+
+Run:
+
+```
+rpm/centos/build-docker-img.sh
+```
+
+It will build a new docker image `mssh-copy-id-build-centos6`. Check it:
+
+```
+docker images
+```
+
+If you want to rebuild that image, you need to remove it first:
+
+```
+docker rmi -f mssh-copy-id-build-centos6
+```
+
+#### Build the RPM package
+
+Run:
+
+```
+./build-rpm.sh
+```
+
+The RPM will be in `dist/rpmbuild/RPMS/noarch`.
+
+### How to build an RPM package for CentOS 7
+
+TODO
+
+### How to build a deb package
+
+TODO
 
 ## How to preview the `README.md` locally
 
