@@ -3,13 +3,19 @@ from setuptools import setup, find_packages
 long_description = '''mssh-copy-id is a command-line tool to copy SSH keys to multiple servers.'''
 tests_require = ['mock', 'pytest', 'pytest-runner', 'pytest-cov', 'coverage']
 
+# Version info -- read without importing
+_locals = {}
+with open('msshcopyid/_version.py') as fp:
+    exec(fp.read(), None, _locals)
+version = _locals['__version__']
+
 setup(
     name='mssh-copy-id',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.1',
+    version=version,
 
     description='Copy SSH keys to multiple servers',
     long_description=long_description,
@@ -71,7 +77,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        # 'dev': ['check-manifest'],
+        'dev': ['twine'],
         'test': tests_require,
     },
 

@@ -11,6 +11,8 @@ import sys
 
 import paramiko
 
+from msshcopyid._version import __version__, __version_info__
+
 
 DEFAULT_SSH_DIR = os.path.join(os.path.expanduser("~"), '.ssh')
 
@@ -135,6 +137,7 @@ class Main(object):
         parser.add_argument('-R', '--remove', action='store_true',
                             help='don\'t copy the SSH keys, but instead, remove the hosts from the "known_hosts" file')
         parser.add_argument('-v', '--verbose', action='store_true', help='enable verbose mode.')
+        parser.add_argument('--version', action='version', version=__version__)
         return parser.parse_args(argv[1:])
 
     def parse_hosts(self, hosts, config):
