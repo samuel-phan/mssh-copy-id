@@ -201,11 +201,11 @@ Go to the project directory, and run:
 pip install -e .
 ```
 
-To install the test libs as well, you can run: (recommended for
+To install the dev & test libs as well, you can run: (recommended for
 development)
 
 ```
-pip install -e .[test]
+pip install -e .[dev,test]
 ```
 
 ## How to run the unit tests
@@ -228,15 +228,15 @@ You need to install the libraries for tests (see above).
 
 ### How to build a wheel package
 
+The python wheel package is more for development purpose, as it requires
+lib headers for dependencies and compilation tools to be installed.
+
 #### Requirements
 
 Install the same dependencies as in
 [How to install for development](#how-to-install-for-development).
 
 #### Build the wheel package
-
-The python wheel package is more for development purpose, as it requires
-lib headers for dependencies and compilation tools to be installed.
 
 Go to the project directory, and run:
 
@@ -309,6 +309,44 @@ The RPM packages will be in `dist/rpmbuild/RPMS/noarch`.
 ### How to build a deb package
 
 TODO
+
+## How to upload to PyPI
+
+Source documentation: https://packaging.python.org/en/latest/distributing/#uploading-your-project-to-pypi
+
+### Requirements
+
+* `twine`: tool to upload to PyPI. It is part of the extra `dev`
+  dependencies. (`pip install -e .[dev,test]`)
+
+### How to upload to PyPI
+
+Create a file `~/.pypirc`:
+
+```
+[distutils]
+index-servers=
+    pypi
+    pypitest
+
+[pypi]
+repository: https://pypi.python.org/pypi
+username: <login>
+password: <password>
+
+[pypitest]
+repository: https://testpypi.python.org/pypi
+username: <login>
+password: <password>
+```
+
+Build and upload:
+
+```
+./clean.sh
+python setup.py sdist bdist_wheel
+twine upload dist/*
+```
 
 ## How to preview the `README.md` locally
 

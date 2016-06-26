@@ -1,7 +1,7 @@
 %{!?python_sitelib: %global python_sitelib %(python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
 Name:           mssh-copy-id
-Version:        0.0.1
+Version:        0.0.2
 Release:        1%{?dist}
 Summary:        Tool to copy SSH keys to multiple servers
 License:        MIT
