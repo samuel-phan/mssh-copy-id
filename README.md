@@ -263,7 +263,7 @@ pyenv activate foo
 
 You should be able to run `mssh-copy-id` as real production.
 
-### How to build an RPM package for CentOS 6
+### How to build an RPM package for CentOS 6 & 7
 
 #### Requirements
 
@@ -275,34 +275,36 @@ You should be able to run `mssh-copy-id` as real production.
 Run:
 
 ```
-rpm/centos/build-docker-img.sh
+rpm/centos/build-docker-img.sh rpm/centos/mssh-copy-id-build-centos{6,7}
 ```
 
-It will build a new docker image `mssh-copy-id-build-centos6`. Check it:
+It will build the new docker images:
+
+* `mssh-copy-id-build-centos6`
+* `mssh-copy-id-build-centos7`
+
+Check it:
 
 ```
 docker images
 ```
 
-If you want to rebuild that image, you need to remove it first:
+If you want to rebuild those Docker images, you need to remove them
+first:
 
 ```
-docker rmi -f mssh-copy-id-build-centos6
+rpm/centos/build-docker-img.sh --clean rpm/centos/mssh-copy-id-build-centos{6,7}
 ```
 
-#### Build the RPM package
+#### Build the RPM packages
 
 Run:
 
 ```
-./build-rpm.sh
+./build-rpm.sh centos{6,7}
 ```
 
-The RPM will be in `dist/rpmbuild/RPMS/noarch`.
-
-### How to build an RPM package for CentOS 7
-
-TODO
+The RPM packages will be in `dist/rpmbuild/RPMS/noarch`.
 
 ### How to build a deb package
 
