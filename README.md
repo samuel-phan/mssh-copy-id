@@ -275,13 +275,13 @@ You should be able to run `mssh-copy-id` as real production.
 Run:
 
 ```
-rpm/centos/build-docker-img.sh rpm/centos/mssh-copy-id-build-centos{6,7}
+rpm/centos/build-docker-img.sh rpm/centos/centos{6,7}-build-mssh-copy-id
 ```
 
 It will build the new docker images:
 
-* `mssh-copy-id-build-centos6`
-* `mssh-copy-id-build-centos7`
+* `centos6-build-mssh-copy-id`
+* `centos7-build-mssh-copy-id`
 
 Check it:
 
@@ -293,7 +293,7 @@ If you want to rebuild those Docker images, you need to remove them
 first:
 
 ```
-rpm/centos/build-docker-img.sh --clean rpm/centos/mssh-copy-id-build-centos{6,7}
+rpm/centos/build-docker-img.sh --clean rpm/centos/centos{6,7}-build-mssh-copy-id
 ```
 
 #### Build the RPM packages

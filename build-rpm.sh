@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# We suppose that the Docker image "mssh-copy-id-build-centos6" or "mssh-copy-id-build-centos7" has been created and
+# We suppose that the Docker image "centos6-build-mssh-copy-id" or "centos7-build-mssh-copy-id" has been created and
 # imported
 
 SUPPORTED_OSES=("centos6" "centos7")
@@ -67,5 +67,5 @@ cp -f $PROJECT_DIR/rpm/centos/mssh-copy-id.spec $RPMBUILD_DIR/SPECS
 
 # Build the RPM
 for os_target in ${ARGS[*]}; do
-    docker run -v $RPMBUILD_DIR:$CONTAINER_RPMBUILD_DIR mssh-copy-id-build-${os_target}
+    docker run -v $RPMBUILD_DIR:$CONTAINER_RPMBUILD_DIR ${os_target}-build-mssh-copy-id
 done
