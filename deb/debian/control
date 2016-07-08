@@ -1,0 +1,23 @@
+Source: mssh-copy-id
+Section: utilities
+Priority: optional
+Maintainer: Samuel Phan <samuel@quoonel.com>
+X-Python-Version: >= 2.6
+Build-Depends: debhelper (>> 9),
+               dh-python,
+               python-all (>= 2.6.6),
+               python-setuptools
+Standards-Version: 3.9.4
+Homepage: https://github.com/samuel-phan/mssh-copy-id
+Vcs-Git: git@github.com:samuel-phan/mssh-copy-id.git
+Vcs-Browser: https://github.com/samuel-phan/mssh-copy-id
+
+Package: mssh-copy-id
+Architecture: any
+Depends: python-paramiko (>= 1.7),
+         ${shlibs:Depends},
+         ${misc:Depends},
+         ${python:Depends}
+Provides: ${python:Provides}
+Description: Copy SSH keys to multiple servers
+ mssh-copy-id is a command-line tool to copy SSH keys to multiple servers.

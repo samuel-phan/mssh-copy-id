@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # We suppose that the Docker image "centos6-build-mssh-copy-id" or "centos7-build-mssh-copy-id" has been created and
-# imported
+# imported.
 
 SUPPORTED_OSES=("centos6" "centos7")
 PROJECT_DIR=$(dirname $(readlink -e $0))

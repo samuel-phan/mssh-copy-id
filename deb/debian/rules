@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+export PYBUILD_NAME=mssh-copy-id
+
+PREFIX = debian/mssh-copy-id
+
+%:
+	dh $@ --with python2 --buildsystem=pybuild
+
+override_dh_auto_install:
+	dh_auto_install
+
+	mv $(PREFIX)/usr/bin/mssh-copy-id.py $(PREFIX)/usr/bin/mssh-copy-id

@@ -275,7 +275,7 @@ You should be able to run `mssh-copy-id` as real production.
 Run:
 
 ```
-rpm/centos/build-docker-img.sh rpm/centos/centos{6,7}-build-mssh-copy-id
+./build-docker-img.sh rpm/centos/centos{6,7}-build-mssh-copy-id
 ```
 
 It will build the new docker images:
@@ -293,7 +293,7 @@ If you want to rebuild those Docker images, you need to remove them
 first:
 
 ```
-rpm/centos/build-docker-img.sh --clean rpm/centos/centos{6,7}-build-mssh-copy-id
+./build-docker-img.sh --clean rpm/centos/centos{6,7}-build-mssh-copy-id
 ```
 
 #### Build the RPM packages
@@ -308,7 +308,45 @@ The RPM packages will be in `dist/rpmbuild/RPMS/noarch`.
 
 ### How to build a deb package
 
-TODO
+#### Requirements
+
+* [Docker](https://docs.docker.com/): I tested with version `1.11.2` but
+  I assume that it will work on older versions.
+
+#### Build the docker image
+
+Run:
+
+```
+./build-docker-img.sh deb/ubuntu14.04-build-mssh-copy-id
+```
+
+It will build the new docker images:
+
+* `ubuntu14.04-build-mssh-copy-id`
+
+Check it:
+
+```
+docker images
+```
+
+If you want to rebuild those Docker images, you need to remove them
+first:
+
+```
+./build-docker-img.sh --clean deb/ubuntu14.04-build-mssh-copy-id
+```
+
+#### Build the deb package
+
+Run:
+
+```
+./build-deb.sh
+```
+
+The deb package will be in `dist/deb`.
 
 ## How to upload to PyPI
 
