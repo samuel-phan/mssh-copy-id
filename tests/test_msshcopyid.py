@@ -259,7 +259,7 @@ class TestMain(unittest.TestCase):
             self.main.add_to_known_hosts(hosts, known_hosts=known_hosts, dry=False)
 
         mock_bopen.return_value.writelines.assert_any_call(['{0}\n'.format(k)
-                                                            for k in server2_ssh_key, server3_ssh_key])
+                                                            for k in (server2_ssh_key, server3_ssh_key)])
 
     @patch('subprocess.Popen')
     def test_add_to_known_hosts_dry(self, mock_popen):
