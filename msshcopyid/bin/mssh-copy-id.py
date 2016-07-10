@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import msshcopyid
+import msshcopyid.cli
 
 
 if __name__ == '__main__':
-    msshcopyid.main()
+    msshcopyid.cli.main()
