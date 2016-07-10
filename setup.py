@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 
 long_description = '''mssh-copy-id is a command-line tool to copy SSH keys to multiple servers.'''
-tests_require = ['mock', 'pytest', 'pytest-runner', 'pytest-cov', 'coverage']
+install_requires = ['paramiko>=1.7', 'argparse']
+tests_require = ['unittest2', 'mock', 'pytest', 'pytest-runner', 'pytest-cov', 'coverage']
 
 # Version info -- read without importing
 _locals = {}
@@ -69,7 +70,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['paramiko>=1.7', 'argparse'],
+    install_requires=install_requires,
     tests_require=tests_require,
 
     # List additional groups of dependencies here (e.g. development
@@ -100,7 +101,7 @@ setup(
     scripts=['msshcopyid/bin/mssh-copy-id.py'],
     entry_points={
         'console_scripts': [
-            'mssh-copy-id = msshcopyid:main',
+            'mssh-copy-id = msshcopyid.cli:main',
         ],
     },
 )
