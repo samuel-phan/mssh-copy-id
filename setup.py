@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 
 long_description = '''mssh-copy-id is a command-line tool to copy SSH keys to multiple servers.'''
 install_requires = ['paramiko>=1.7', 'argparse']
+dev_require = ['twine']
 tests_require = ['unittest2', 'mock', 'pytest', 'pytest-runner', 'pytest-cov', 'coverage']
 
 # Version info -- read without importing
@@ -78,7 +79,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        'dev': ['twine'],
+        'dev': dev_require,
         'test': tests_require,
     },
 

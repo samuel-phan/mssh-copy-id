@@ -96,7 +96,7 @@ class Main(object):
 
     def check_add_remove_options_exclusion(self):
         if self.args.add and self.args.remove:
-            logger.error(format_error('argument -a/--add not allowed with argument -R/--remove.'))
+            logger.error(format_error('argument -a/--add not allowed with argument -r/--remove.'))
             sys.exit(1)
 
     def get_parser(self):
@@ -112,7 +112,7 @@ class Main(object):
         copy_group = parser.add_argument_group('Copy SSH keys')
         copy_group.add_argument('-A', '--no-add-host', action='store_true',
                                 help='don\'t add automatically new hosts into "known_hosts" file')
-        copy_group.add_argument('-C', '--clear', action='store_true',
+        copy_group.add_argument('-c', '--clear', action='store_true',
                                 help='clear the hosts from the "known_hosts" file before copying the SSH keys')
         copy_group.add_argument('-i', '--identity', help='the SSH identity file. Default: {0} or {1}'
                                                      .format(DEFAULT_SSH_RSA, DEFAULT_SSH_DSA))
@@ -126,7 +126,7 @@ class Main(object):
         known_host_group.add_argument('-a', '--add', action='store_true',
                                       help='don\'t copy the SSH keys, but instead, add the hosts to the "known_hosts" '
                                            'file')
-        known_host_group.add_argument('-R', '--remove', action='store_true',
+        known_host_group.add_argument('-r', '--remove', action='store_true',
                                       help='don\'t copy the SSH keys, but instead, remove the hosts from the '
                                            '"known_hosts" file')
         return parser
