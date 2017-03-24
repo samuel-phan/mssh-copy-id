@@ -19,43 +19,6 @@ TODO
 
 # How to use
 
-```
-usage: mssh-copy-id [-h] [-a] [-A] [-i IDENTITY] [-k KNOWN_HOSTS] [-n]
-                    [-p PORT] [-P PASSWORD] [-R] [-v]
-                    host [host ...]
-
-Massively copy SSH keys.
-
-positional arguments:
-  host                  the remote hosts to copy the keys to. Syntax:
-                        [user@]hostname
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -a, --add             don't copy the SSH keys, but instead, add the hosts to
-                        the known_hosts file
-  -A, --no-add-host     don't add automatically new hosts into "known_hosts"
-                        file
-  -i IDENTITY, --identity IDENTITY
-                        the SSH identity file. Default:
-                        /home/xxx/.ssh/id_rsa or /home/xxx/.ssh/id_dsa
-  -k KNOWN_HOSTS, --known-hosts KNOWN_HOSTS
-                        the known_hosts file to use. Default:
-                        /home/xxx/.ssh/known_hosts
-  -n, --dry             do a dry run. Do not change anything
-  -p PORT, --port PORT  the SSH port for the remote hosts
-  -P PASSWORD, --password PASSWORD
-                        the password to log into the remote hosts. It is NOT
-                        SECURED to set the password that way, since it stays
-                        in the bash history. Password can also be sent on the
-                        STDIN.
-  -R, --remove          don't copy the SSH keys, but instead, remove the hosts
-                        from the known_hosts file
-  -v, --verbose         enable verbose mode.
-```
-
-## Examples
-
 Copy the SSH key to 2 servers:
 
 ```
@@ -221,7 +184,7 @@ You need to install the libraries for tests (see above).
 2. The other way that allows more control & coverage annotations:
 
     ```
-    ./run-tests.sh
+    inv test
     ```
 
 ## How to build
@@ -241,7 +204,7 @@ Install the same dependencies as in
 Go to the project directory, and run:
 
 ```
-python setup.py bdist_wheel
+inv build_wheel
 ```
 
 You will find the Wheel package in the `dist` directory.
@@ -275,7 +238,8 @@ You should be able to run `mssh-copy-id` as real production.
 Run:
 
 ```
-./build-docker-img.sh rpm/centos/centos{6,7}-build-mssh-copy-id
+inv build_docker -i centos6
+inv build_docker -i centos7
 ```
 
 It will build the new docker images:
@@ -289,19 +253,13 @@ Check it:
 docker images
 ```
 
-If you want to rebuild those Docker images, you need to remove them
-first:
-
-```
-./build-docker-img.sh --clean rpm/centos/centos{6,7}-build-mssh-copy-id
-```
-
 #### Build the RPM packages
 
 Run:
 
 ```
-./build-rpm.sh centos{6,7}
+inv build_rpm -t centos6
+inv build_rpm -t centos7
 ```
 
 The RPM packages will be in `dist/rpmbuild/RPMS/noarch`.
@@ -318,7 +276,7 @@ The RPM packages will be in `dist/rpmbuild/RPMS/noarch`.
 Run:
 
 ```
-./build-docker-img.sh deb/ubuntu14.04-build-mssh-copy-id
+inv build_docker -i ubuntu14.04
 ```
 
 It will build the new docker images:
@@ -331,19 +289,12 @@ Check it:
 docker images
 ```
 
-If you want to rebuild those Docker images, you need to remove them
-first:
-
-```
-./build-docker-img.sh --clean deb/ubuntu14.04-build-mssh-copy-id
-```
-
 #### Build the deb package
 
 Run:
 
 ```
-./build-deb.sh
+inv build_deb
 ```
 
 The deb package will be in `dist/deb`.
@@ -381,9 +332,8 @@ password: <password>
 Build and upload:
 
 ```
-./clean.sh
-python setup.py sdist bdist_wheel
-twine upload dist/*
+inv clean build_src build_wheel
+twine upload dist/*.tar.gz dist/*.whl
 ```
 
 ## How to preview the `README.md` locally
