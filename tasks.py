@@ -10,9 +10,10 @@ from invoke import task
 PROJECT_DIR = os.path.dirname(__file__)
 
 DOCKER_IMGS = {
-    'centos6': {'name': 'centos6-build-mssh-copy-id', 'path': 'rpm/centos/centos6-build-mssh-copy-id'},
-    'centos7': {'name': 'centos7-build-mssh-copy-id', 'path': 'rpm/centos/centos7-build-mssh-copy-id'},
-    'ubuntu14.04': {'name': 'ubuntu14.04-build-mssh-copy-id', 'path': 'deb/ubuntu14.04-build-mssh-copy-id'},
+    'centos6': {'name': 'centos6-build-mssh-copy-id', 'path': 'docker/centos6-build-mssh-copy-id'},
+    'centos7': {'name': 'centos7-build-mssh-copy-id', 'path': 'docker/centos7-build-mssh-copy-id'},
+    'ubuntu14.04': {'name': 'ubuntu14.04-build-mssh-copy-id', 'path': 'docker/ubuntu14.04-build-mssh-copy-id'},
+    'sshd': {'name': 'sshd-mssh-copy-id', 'path': 'docker/sshd-mssh-copy-id'},
 }
 
 
@@ -27,7 +28,7 @@ def clean(ctx):
     ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' \) -exec rm -vrf '{}' \;''')
 
 
-@task(help={'image': 'the docker image. Can be: centos6, centos7, ubuntu14.04'})
+@task(help={'image': 'the docker image. Can be: {0}'.format(', '.join(DOCKER_IMGS))})
 def build_docker(ctx, image):
     """
     build docker images
@@ -46,7 +47,7 @@ def build_deb(ctx, target='ubuntu14.04'):
     """
     build a deb package
     """
-    if target not in DOCKER_IMGS:
+    if target not in ('ubuntu14.04',):
         print('Error: unknown target "{0}"!'.format(target), file=sys.stderr)
         sys.exit(1)
 
@@ -73,7 +74,7 @@ def build_rpm(ctx, target='centos7'):
     """
     build an RPM package
     """
-    if target not in DOCKER_IMGS:
+    if target not in ('centos6', 'centos7'):
         print('Error: unknown target "{0}"!'.format(target), file=sys.stderr)
         sys.exit(1)
 
