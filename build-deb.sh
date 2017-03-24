@@ -5,7 +5,6 @@
 PROJECT_DIR=$(dirname $(readlink -e $0))
 DEBBUILD_DIR=$PROJECT_DIR/dist/deb
 CONTAINER_DEBBUILD_DIR=/deb
-CLEAN=0
 ARGS=()
 
 usage() {
@@ -40,8 +39,11 @@ mkdir -p $DEBBUILD_DIR
 # Copy the sources
 cd $PROJECT_DIR
 python setup.py sdist --dist-dir $DEBBUILD_DIR
-cp -r $PROJECT_DIR/deb/debian $DEBBUILD_DIR
 tar -xvf $DEBBUILD_DIR/mssh-copy-id-*.tar.gz -C $DEBBUILD_DIR
+for file in "$DEBBUILD_DIR/mssh-copy-id-*/"; do
+    source_dir="$file"
+done
+cp -r $PROJECT_DIR/deb/debian $source_dir
 
 # Build the deb
 docker run -v $DEBBUILD_DIR:$CONTAINER_DEBBUILD_DIR ubuntu14.04-build-mssh-copy-id
