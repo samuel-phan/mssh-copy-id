@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
-from mock import MagicMock, mock_open, patch
 import socket
-import unittest2 as unittest
+import sys
 
+from mock import MagicMock, mock_open, patch
 import paramiko
+import unittest2 as unittest
 
 import msshcopyid.cli
 from msshcopyid.constants import DEFAULT_SSH_DSA
@@ -85,7 +86,11 @@ class TestMain(unittest.TestCase):
         with self.assertRaises(SystemExit) as exctx:
             self.main.check_ssh_key_exists()
 
-        self.assertEqual(exctx.exception, 1)
+        # Behavior is different between Python 2.6 and 2.7 when catching SystemExit
+        if sys.version_info < (2, 7):
+            self.assertEquals(exctx.exception, 1)
+        else:
+            self.assertEquals(exctx.exception.args, (1,))
 
     @patch('msshcopyid.cli.os.path.exists')
     def test_check_ssh_key_exists_not_exists(self, mock_exists):
@@ -100,7 +105,11 @@ class TestMain(unittest.TestCase):
         with self.assertRaises(SystemExit) as exctx:
             self.main.check_ssh_key_exists()
 
-        self.assertEqual(exctx.exception, 1)
+        # Behavior is different between Python 2.6 and 2.7 when catching SystemExit
+        if sys.version_info < (2, 7):
+            self.assertEquals(exctx.exception, 1)
+        else:
+            self.assertEquals(exctx.exception.args, (1,))
 
     @patch('msshcopyid.cli.open', new_callable=mock_open)
     @patch('msshcopyid.cli.os.path.exists', return_value=False)
