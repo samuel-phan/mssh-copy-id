@@ -25,7 +25,7 @@ def clean(ctx):
     os.chdir(PROJECT_DIR)
     patterns = ['.coverage', '.eggs', 'build', 'dist']
     ctx.run('rm -vrf {0}'.format(' '.join(patterns)))
-    ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' \) -exec rm -vrf '{}' \;''')
+    ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' \) -exec rm -vrf '{}' \; || true''')
 
 
 @task(help={'image': 'the docker image. Can be: {0}'.format(', '.join(DOCKER_IMGS))})
