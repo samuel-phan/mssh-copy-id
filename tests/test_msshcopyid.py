@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import subprocess
+import sys
 
 import paramiko
 from mock import call, MagicMock, mock_open, patch
@@ -51,7 +52,12 @@ class TestSSHCopyId(unittest.TestCase):
         with self.assertRaises(SystemExit) as exctx:
             self.sshcopyid.read_pub_key()
 
-        self.assertEqual(exctx.exception, 1)
+        # Behavior is different between Python 2.6 and 2.7 when catching SystemExit
+        if sys.version_info < (2, 7):
+            self.assertEquals(exctx.exception, 1)
+        else:
+            self.assertEquals(exctx.exception.args, (1,))
+
         mock_exists.assert_called_once_with(self.sshcopyid.pub_key)
 
     @patch('msshcopyid.subprocess.Popen')
