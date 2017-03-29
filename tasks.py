@@ -65,8 +65,11 @@ def build_deb(ctx, target='ubuntu14.04'):
     ctx.run('cp -r {0} {1}'.format(os.path.join(PROJECT_DIR, 'deb/debian'), src_dir))
 
     # Build the deb
-    ctx.run('docker run -v {0}:{1} {2}'
-            .format(debbuild_dir, '/deb', DOCKER_IMGS[target]['name']))
+    ctx.run('docker run -e LOCAL_USER_ID={local_user_id} -v {local}:{cont} {img}'
+            .format(local_user_id=os.getuid(),
+                    local=debbuild_dir,
+                    cont='/deb',
+                    img=DOCKER_IMGS[target]['name']))
 
 
 @task(help={'target': 'the target OS. Can be: centos6, centos7'})
@@ -91,8 +94,11 @@ def build_rpm(ctx, target='centos7'):
                                    os.path.join(rpmbuild_dir, 'SPECS')))
 
     # Build the RPM
-    ctx.run('docker run -v {0}:{1} {2}'
-            .format(rpmbuild_dir, '/rpmbuild', DOCKER_IMGS[target]['name']))
+    ctx.run('docker run -e LOCAL_USER_ID={local_user_id} -v {local}:{cont} {img}'
+            .format(local_user_id=os.getuid(),
+                    local=rpmbuild_dir,
+                    cont='/rpmbuild',
+                    img=DOCKER_IMGS[target]['name']))
 
 
 @task(help={'dest': 'destination directory of the archive'})
