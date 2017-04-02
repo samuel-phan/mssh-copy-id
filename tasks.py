@@ -9,11 +9,19 @@ from invoke import task
 
 PROJECT_DIR = os.path.dirname(__file__)
 
+DOCKER_DIR = os.path.join(PROJECT_DIR, 'docker')
+DOCKER_COMMON_DIR = os.path.join(DOCKER_DIR, 'common')
+
 DOCKER_IMGS = {
-    'centos6': {'name': 'centos6-build-mssh-copy-id', 'path': 'docker/centos6-build-mssh-copy-id'},
-    'centos7': {'name': 'centos7-build-mssh-copy-id', 'path': 'docker/centos7-build-mssh-copy-id'},
-    'ubuntu14.04': {'name': 'ubuntu14.04-build-mssh-copy-id', 'path': 'docker/ubuntu14.04-build-mssh-copy-id'},
-    'sshd': {'name': 'sshd-mssh-copy-id', 'path': 'docker/sshd-mssh-copy-id'},
+    'centos6': {'name': 'centos6-build-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos6-build-mssh-copy-id')},
+    'centos7': {'name': 'centos7-build-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos7-build-mssh-copy-id')},
+    'ubuntu14.04': {'name': 'ubuntu14.04-build-mssh-copy-id',
+                    'path': os.path.join(DOCKER_DIR, 'ubuntu14.04-build-mssh-copy-id')},
+    'sshd': {'name': 'sshd-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'sshd-mssh-copy-id')},
+}
+
+DOCKER_RUN_IMGS = {
+    'centos6': {'name': 'centos6-run-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos6-run-mssh-copy-id')},
 }
 
 
@@ -23,9 +31,18 @@ def clean(ctx):
     clean generated project files
     """
     os.chdir(PROJECT_DIR)
-    patterns = ['.coverage', '.eggs', 'build', 'dist']
+    patterns = ['.cache',
+                '.coverage',
+                '.eggs',
+                'build',
+                'dist',
+                'docker/centos6-run-mssh-copy-id/_work',
+                'func-tests/.gauge',
+                'func-tests/logs',
+                'func-tests/reports']
     ctx.run('rm -vrf {0}'.format(' '.join(patterns)))
-    ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' \) -exec rm -vrf '{}' \; || true''')
+    ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' -o -name '_work' \) '''
+            '''-exec rm -vrf '{}' \; || true''')
 
 
 @task(help={'image': 'the docker image. Can be: {0}'.format(', '.join(DOCKER_IMGS))})
@@ -39,7 +56,10 @@ def build_docker(ctx, image):
 
     dinfo = DOCKER_IMGS[image]
     ctx.run('docker rmi -f {0}'.format(dinfo['name']), warn=True)
-    ctx.run('docker build -t {0} {1}'.format(dinfo['name'], os.path.join(PROJECT_DIR, dinfo['path'])))
+    ctn_work_dir = os.path.join(dinfo['path'], '_work')
+    ctx.run('mkdir -p {0}'.format(ctn_work_dir))
+    ctx.run('cp {0} {1}'.format(os.path.join(DOCKER_COMMON_DIR, 'sudo-as-user.sh'), ctn_work_dir))
+    ctx.run('docker build -t {0} {1}'.format(dinfo['name'], dinfo['path']))
 
 
 @task(help={'target': 'the target OS. Can be: ubuntu14.04'})
@@ -127,10 +147,47 @@ def build_wheel(ctx):
     ctx.run('python setup.py bdist_wheel')
 
 
+@task(pre=[clean], help={'image': 'the docker image. Can be: {0}'.format(', '.join(DOCKER_RUN_IMGS))})
+def build_docker_run(ctx, image):
+    """
+    build docker images to run mssh-copy-id (functional test)
+    """
+    if image not in DOCKER_RUN_IMGS:
+        print('Error: unknown docker image "{0}"!'.format(image), file=sys.stderr)
+        sys.exit(1)
+
+    # Build the RPM & deb
+    if image in ('centos6', 'centos7'):
+        # TODO: add centos7
+        build_rpm(ctx, target=image)
+    elif image in ('ubuntu14.04',):
+        # TODO: add ubuntu14.04
+        build_deb(ctx, target=image)
+
+    ctx.run('mkdir -p {0}'.format(os.path.join(PROJECT_DIR, 'docker/centos6-run-mssh-copy-id/_work')))
+    ctx.run('cp {0} {1}'.format(os.path.join(PROJECT_DIR, 'dist/rpmbuild/RPMS/noarch/mssh-copy-id-*.rpm'),
+                                os.path.join(PROJECT_DIR, 'docker/centos6-run-mssh-copy-id/_work')))
+    dinfo = DOCKER_RUN_IMGS[image]
+    ctx.run('docker rmi -f {0}'.format(dinfo['name']), warn=True)
+    ctx.run('docker build -t {0} {1}'.format(dinfo['name'], dinfo['path']))
+
+
 @task
 def test(ctx):
     """
-    run the tests
+    run the unit tests
     """
     os.chdir(PROJECT_DIR)
     ctx.run('py.test --color yes --cov msshcopyid --cov-report annotate --cov-report term-missing -v tests')
+
+
+@task
+def func_test(ctx):
+    """
+    run the functional tests
+    """
+    if sys.version_info < (2, 7):
+        raise SystemExit('Error: functional tests require Python 2.7 or higher.')
+
+    os.chdir(PROJECT_DIR)
+    ctx.run('gauge func-tests/specs')
