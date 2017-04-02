@@ -187,6 +187,35 @@ You need to install the libraries for tests (see above).
     inv test
     ```
 
+## How to run the functional tests
+
+To run the functional tests, you need to have at least **Python 2.7**.
+
+Install Python 2.7 interpreter:
+
+```
+pyenv install 2.7.12
+```
+
+Create a virtualenv based on Python 2.7 and activate it:
+
+```
+pyenv virtualenv 2.7.12 mssh-copy-id27
+pyenv activate mssh-copy-id27
+```
+
+Install the dependencies in that virtualenv:
+
+```
+pip install -e .[dev,test]
+```
+
+Run the functional tests:
+
+```
+inv func-tests
+```
+
 ## How to build
 
 ### How to build a wheel package

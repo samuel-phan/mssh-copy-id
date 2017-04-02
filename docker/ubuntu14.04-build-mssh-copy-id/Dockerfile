@@ -7,10 +7,10 @@ RUN sudo apt-get install -y build-essential debhelper dh-make python-all python-
 RUN mkdir /deb
 VOLUME ["/deb"]
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY _work/sudo-as-user.sh /usr/local/bin/sudo-as-user.sh
 COPY build.sh /
 
 RUN sudo apt-get clean
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/sudo-as-user.sh"]
 CMD ["/build.sh"]
