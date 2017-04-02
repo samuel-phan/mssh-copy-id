@@ -10,5 +10,7 @@ VOLUME ["/deb"]
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY build.sh /
 
+RUN sudo apt-get clean
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/build.sh"]

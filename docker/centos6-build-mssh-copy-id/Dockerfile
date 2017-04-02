@@ -8,5 +8,7 @@ VOLUME ["/rpmbuild"]
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
+RUN yum clean all
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["rpmbuild", "--define", "_topdir /rpmbuild", "-ba", "/rpmbuild/SPECS/mssh-copy-id.spec"]
