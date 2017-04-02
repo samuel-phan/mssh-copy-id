@@ -101,10 +101,13 @@ class SSHCopyId(object):
         :raise paramiko.ssh_exception.SSHException: generic SSH error.
         :raise socket.error: if error at the socket level.
         """
-        with paramiko.SSHClient() as client:
+        client = None
+        try:
+            client = paramiko.SSHClient()
             if not no_add_host:
                 client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-            client.load_host_keys(filename=known_hosts)
+            if os.path.isfile(known_hosts):
+                client.load_host_keys(filename=known_hosts)
 
             client.connect(host.hostname, port=host.port, username=host.user, password=password,
                            key_filename=self.priv_key)
@@ -114,6 +117,9 @@ k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/
                    .format(self.pub_key_content))
             logger.debug('Run on [%s]: %s', host.hostname, cmd)
             client.exec_command(cmd.encode('utf-8'))
+        finally:
+            if client:
+                client.close()
 
 
 class Host(object):
