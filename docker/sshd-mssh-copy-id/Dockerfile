@@ -2,10 +2,12 @@ FROM centos:latest
 
 USER root
 
-RUN echo 'root:root' | chpasswd
+RUN echo 'root:root_password' | chpasswd
 RUN yum install -y openssh-server
 RUN ssh-keygen -A
 RUN mkdir -m 700 /root/.ssh
+
+RUN yum clean all
 
 EXPOSE 22
 
