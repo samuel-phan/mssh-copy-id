@@ -3,7 +3,7 @@ FROM centos:latest
 USER root
 
 RUN echo 'root:root_password' | chpasswd
-RUN yum install -y openssh-server
+RUN yum install -y openssh-server iproute
 RUN ssh-keygen -A
 RUN mkdir -m 700 /root/.ssh
 

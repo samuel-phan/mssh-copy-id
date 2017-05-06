@@ -17,12 +17,13 @@ DOCKER_IMGS = {
     'centos7': {'name': 'centos7-build-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos7-build-mssh-copy-id')},
     'ubuntu14.04': {'name': 'ubuntu14.04-build-mssh-copy-id',
                     'path': os.path.join(DOCKER_DIR, 'ubuntu14.04-build-mssh-copy-id')},
-    'sshd': {'name': 'sshd-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'sshd-mssh-copy-id')},
 }
 
 DOCKER_RUN_IMGS = {
     'centos6': {'name': 'centos6-run-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos6-run-mssh-copy-id')},
 }
+
+DOCKER_SSHD_IMG = {'name': 'sshd-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'sshd-mssh-copy-id')}
 
 
 @task
@@ -43,6 +44,16 @@ def clean(ctx):
     ctx.run('rm -vrf {0}'.format(' '.join(patterns)))
     ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' -o -name '_work' \) '''
             '''-exec rm -vrf '{}' \; || true''')
+
+
+@task
+def build_docker_sshd(ctx):
+    """
+    build docker image sshd-mssh-copy-id
+    """
+    dinfo = DOCKER_SSHD_IMG
+    ctx.run('docker rmi -f {0}'.format(dinfo['name']), warn=True)
+    ctx.run('docker build -t {0} {1}'.format(dinfo['name'], dinfo['path']))
 
 
 @task(help={'image': 'the docker image. Can be: {0}'.format(', '.join(DOCKER_IMGS))})
