@@ -11,7 +11,6 @@ import docker
 from getgauge.python import after_scenario, before_scenario, before_spec, step
 
 DOCKER_SSHD_IMAGE = 'sshd-mssh-copy-id'
-DOCKER_MSSH_IMAGES = {'centos6': 'centos6-run-mssh-copy-id'}
 
 NOW = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 GAUGE_PROJECT_ROOT = os.environ['GAUGE_PROJECT_ROOT']
@@ -88,7 +87,7 @@ def add_user_to_container(user, password, container_name):
     container.exec_run('bash -c \'echo "{}:{}" | chpasswd\''.format(user, password))
 
 
-@step('Generate SSH keys for <user> in <container_name>')
+@step('Generate SSH keys for <user>@<container_name>')
 def generate_ssh_keys(user, container_name):
     container_mount_dir = get_container_mount_dir(container_name)
     if user == 'root':
@@ -102,14 +101,13 @@ def generate_ssh_keys(user, container_name):
     subprocess.check_call(['ssh-keygen', '-N', "", '-f', ssh_key_file], stdout=open(os.devnull, 'wb'))
 
 
-@step('Run mssh-copy-id on <distro> as <user> with args <args> using <container_name>')
-def run_mssh_copy_id(distro, user, args, container_name):
+@step('Run mssh-copy-id as <user>@<container_name> using <image> with args <args>')
+def run_mssh_copy_id(user, container_name, image, args):
     # TODO: take into account the "user"
-    image = DOCKER_MSSH_IMAGES[distro]
     real_container_name = gen_real_container_name(container_name)
     volumes = get_container_volumes(container_name)
     start_container(image,
-                    command=args,
+                    command="mssh-copy-id " + args,
                     name=real_container_name,
                     network=DOCKER_NETWORK.name,
                     stdin_open=True,
@@ -118,8 +116,8 @@ def run_mssh_copy_id(distro, user, args, container_name):
                     create_volumes_dir=True)
 
 
-@step('Test SSH connection on <distro> as <src_user> using <src_container> to <dst_container> as <dst_user>')
-def test_ssh(distro, src_user, src_container, dst_container, dst_user):
+@step('Test SSH from <src_user>@<container_name> using <image> to <dst_user>@<dst_container>')
+def test_ssh(src_user, src_container, image, dst_user, dst_container):
     # TODO: implement
     pass
 
