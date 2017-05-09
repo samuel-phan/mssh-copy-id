@@ -8,6 +8,4 @@ COPY _work/mssh-copy-id-*.rpm /
 RUN yum install -y /mssh-copy-id*.rpm openssh-clients iproute
 RUN yum clean all
 
-VOLUME ["/root/.ssh"]
-
-ENTRYPOINT ["/usr/bin/mssh-copy-id"]
+VOLUME ["/root/.ssh", "/home"]
