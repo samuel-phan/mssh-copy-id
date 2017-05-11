@@ -88,6 +88,7 @@ class SSHCopyId(object):
                 except subprocess.CalledProcessError as ex:
                     logger.error(format_error(format_exception(ex)))
 
+    # TODO: change no_add_host to add_host
     def copy_ssh_keys_to_host(self, host, password=None, no_add_host=False, known_hosts=DEFAULT_KNOWN_HOSTS):
         """
         Copy the SSH keys to the given host.

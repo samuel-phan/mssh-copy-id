@@ -161,9 +161,10 @@ class TestSSHCopyId(unittest.TestCase):
             mock_check_call.assert_any_call(cmd)
             mock_logger.error.assert_any_call(mock_format_error(mock_format_exception(ex)))
 
+    @patch('msshcopyid.os.path.isfile', return_value=True)
     @patch('msshcopyid.paramiko.client.AutoAddPolicy')
     @patch('msshcopyid.paramiko.SSHClient')
-    def test_copy_ssh_keys_to_host(self, mock_ssh_client, mock_auto_add_policy):
+    def test_copy_ssh_keys_to_host(self, mock_ssh_client, mock_auto_add_policy, mock_isfile):
         host = msshcopyid.Host(hostname='server1', port=12345, user='a_user', password='a_password')
         known_hosts = MagicMock()
 
@@ -173,7 +174,7 @@ class TestSSHCopyId(unittest.TestCase):
 
         self.sshcopyid.copy_ssh_keys_to_host(host, password=password, no_add_host=False, known_hosts=known_hosts)
 
-        client = mock_ssh_client.return_value.__enter__.return_value
+        client = mock_ssh_client.return_value
         client.set_missing_host_key_policy.assert_called_once_with(mock_auto_add_policy.return_value)
         client.connect.assert_called_once_with(host.hostname, port=host.port, username=host.user,
                                                password=password, key_filename=self.sshcopyid.priv_key)
@@ -182,12 +183,13 @@ k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/
                .format(self.sshcopyid.pub_key_content))
         client.exec_command.assert_called_once_with(cmd)
 
+    @patch('msshcopyid.os.path.isfile', return_value=True)
     @patch('msshcopyid.paramiko.client.AutoAddPolicy')
     @patch('msshcopyid.paramiko.SSHClient')
-    def test_copy_ssh_keys_to_host_no_add_host(self, mock_ssh_client, mock_auto_add_policy):
+    def test_copy_ssh_keys_to_host_no_add_host(self, mock_ssh_client, mock_auto_add_policy, mock_isfile):
         host = msshcopyid.Host(hostname='server1', port=12345, user='a_user', password='a_password')
         known_hosts = MagicMock()
-        client = mock_ssh_client.return_value.__enter__.return_value
+        client = mock_ssh_client.return_value
         ssh_exception = paramiko.ssh_exception.SSHException('ssh exception')
         client.connect.side_effect = ssh_exception
 
@@ -199,18 +201,18 @@ k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/
             self.sshcopyid.copy_ssh_keys_to_host(host, password=password, no_add_host=True, known_hosts=known_hosts)
             self.assertEqual(exctx.exception, ssh_exception)
 
-        client = mock_ssh_client.return_value.__enter__.return_value
         client.set_missing_host_key_policy.assert_not_called()
         client.connect.assert_called_once_with(host.hostname, port=host.port, username=host.user,
                                                password=password, key_filename=self.sshcopyid.priv_key)
         client.exec_command.assert_not_called()
 
+    @patch('msshcopyid.os.path.isfile', return_value=True)
     @patch('msshcopyid.paramiko.client.AutoAddPolicy')
     @patch('msshcopyid.paramiko.SSHClient')
-    def test_copy_ssh_keys_to_host_wrong_password(self, mock_ssh_client, mock_auto_add_policy):
+    def test_copy_ssh_keys_to_host_wrong_password(self, mock_ssh_client, mock_auto_add_policy, mock_isfile):
         host = msshcopyid.Host(hostname='server1', port=12345, user='a_user', password='a_password')
         known_hosts = MagicMock()
-        client = mock_ssh_client.return_value.__enter__.return_value
+        client = mock_ssh_client.return_value
         auth_exception = paramiko.ssh_exception.AuthenticationException('authentication exception')
         client.connect.side_effect = auth_exception
 
@@ -222,7 +224,6 @@ k='{0}' && if ! grep -qFx "$k" ~/.ssh/authorized_keys; then echo "$k" >> ~/.ssh/
             self.sshcopyid.copy_ssh_keys_to_host(host, password=password, no_add_host=True, known_hosts=known_hosts)
             self.assertEqual(exctx.exception, auth_exception)
 
-        client = mock_ssh_client.return_value.__enter__.return_value
         client.set_missing_host_key_policy.assert_not_called()
         client.connect.assert_called_once_with(host.hostname, port=host.port, username=host.user,
                                                password=password, key_filename=self.sshcopyid.priv_key)
