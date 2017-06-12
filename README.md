@@ -13,7 +13,7 @@ TODO
 
 TODO
 
-## Ubuntu 14.04
+## Ubuntu 14.04 (trusty)
 
 TODO
 
@@ -273,8 +273,8 @@ inv build_docker -i centos7
 
 It will build the new docker images:
 
-* `centos6-build-mssh-copy-id`
-* `centos7-build-mssh-copy-id`
+* `mssh-copy-id-build-centos6`
+* `mssh-copy-id-build-centos7`
 
 Check it:
 
@@ -305,12 +305,12 @@ The RPM packages will be in `dist/rpmbuild/RPMS/noarch`.
 Run:
 
 ```
-inv build_docker -i ubuntu14.04
+inv build_docker -i ubuntu-trusty
 ```
 
 It will build the new docker images:
 
-* `ubuntu14.04-build-mssh-copy-id`
+* `mssh-copy-id-build-ubuntu-trusty`
 
 Check it:
 

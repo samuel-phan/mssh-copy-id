@@ -8,22 +8,24 @@ from invoke import task
 
 
 PROJECT_DIR = os.path.dirname(__file__)
+DIST_DIR = os.path.join(PROJECT_DIR, 'dist')
 
 DOCKER_DIR = os.path.join(PROJECT_DIR, 'docker')
 DOCKER_COMMON_DIR = os.path.join(DOCKER_DIR, 'common')
 
 DOCKER_IMGS = {
-    'centos6': {'name': 'centos6-build-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos6-build-mssh-copy-id')},
-    'centos7': {'name': 'centos7-build-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos7-build-mssh-copy-id')},
-    'ubuntu14.04': {'name': 'ubuntu14.04-build-mssh-copy-id',
-                    'path': os.path.join(DOCKER_DIR, 'ubuntu14.04-build-mssh-copy-id')},
+    'centos6': {'name': 'mssh-copy-id-build-centos6', 'path': os.path.join(DOCKER_DIR, 'mssh-copy-id-build-centos6')},
+    'centos7': {'name': 'mssh-copy-id-build-centos7', 'path': os.path.join(DOCKER_DIR, 'mssh-copy-id-build-centos7')},
+    'ubuntu-trusty': {'name': 'mssh-copy-id-build-ubuntu-trusty',
+                      'path': os.path.join(DOCKER_DIR, 'mssh-copy-id-build-ubuntu-trusty')},
 }
 
 DOCKER_RUN_IMGS = {
-    'centos6': {'name': 'centos6-run-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'centos6-run-mssh-copy-id')},
+    'centos6': {'name': 'mssh-copy-id-centos6', 'path': os.path.join(DOCKER_DIR, 'mssh-copy-id-centos6')},
+    'centos7': {'name': 'mssh-copy-id-centos7', 'path': os.path.join(DOCKER_DIR, 'mssh-copy-id-centos7')},
 }
 
-DOCKER_SSHD_IMG = {'name': 'sshd-mssh-copy-id', 'path': os.path.join(DOCKER_DIR, 'sshd-mssh-copy-id')}
+DOCKER_SSHD_IMG = {'name': 'mssh-copy-id-sshd', 'path': os.path.join(DOCKER_DIR, 'mssh-copy-id-sshd')}
 
 
 @task
@@ -37,7 +39,6 @@ def clean(ctx):
                 '.eggs',
                 'build',
                 'dist',
-                'docker/centos6-run-mssh-copy-id/_work',
                 'func-tests/.gauge',
                 'func-tests/logs',
                 'func-tests/reports']
@@ -67,23 +68,23 @@ def build_docker(ctx, image):
 
     dinfo = DOCKER_IMGS[image]
     ctx.run('docker rmi -f {0}'.format(dinfo['name']), warn=True)
-    ctn_work_dir = os.path.join(dinfo['path'], '_work')
-    ctx.run('mkdir -p {0}'.format(ctn_work_dir))
-    ctx.run('cp {0} {1}'.format(os.path.join(DOCKER_COMMON_DIR, 'sudo-as-user.sh'), ctn_work_dir))
+    dinfo_work_dir = os.path.join(dinfo['path'], '_work')
+    ctx.run('mkdir -p {0}'.format(dinfo_work_dir))
+    ctx.run('cp {0} {1}'.format(os.path.join(DOCKER_COMMON_DIR, 'sudo-as-user.sh'), dinfo_work_dir))
     ctx.run('docker build -t {0} {1}'.format(dinfo['name'], dinfo['path']))
 
 
-@task(help={'target': 'the target OS. Can be: ubuntu14.04'})
-def build_deb(ctx, target='ubuntu14.04'):
+@task(help={'target': 'the target OS. Can be: ubuntu-trusty'})
+def build_deb(ctx, target):
     """
     build a deb package
     """
-    if target not in ('ubuntu14.04',):
+    if target not in ('ubuntu-trusty',):
         print('Error: unknown target "{0}"!'.format(target), file=sys.stderr)
         sys.exit(1)
 
     os.chdir(PROJECT_DIR)
-    debbuild_dir = os.path.join(PROJECT_DIR, 'dist/deb')
+    debbuild_dir = os.path.join(DIST_DIR, 'deb')
 
     # Create directories layout
     ctx.run('mkdir -p {0}'.format(debbuild_dir))
@@ -102,9 +103,11 @@ def build_deb(ctx, target='ubuntu14.04'):
                     cont='/deb',
                     img=DOCKER_IMGS[target]['name']))
 
+    ctx.run('mv -f {0} {1}'.format(os.path.join(debbuild_dir, 'mssh-copy-id_*.deb'), DIST_DIR))
+
 
 @task(help={'target': 'the target OS. Can be: centos6, centos7'})
-def build_rpm(ctx, target='centos7'):
+def build_rpm(ctx, target):
     """
     build an RPM package
     """
@@ -113,7 +116,7 @@ def build_rpm(ctx, target='centos7'):
         sys.exit(1)
 
     os.chdir(PROJECT_DIR)
-    rpmbuild_dir = os.path.join(PROJECT_DIR, 'dist/rpmbuild')
+    rpmbuild_dir = os.path.join(DIST_DIR, 'rpmbuild')
 
     # Create directories layout
     ctx.run('mkdir -p {0}'.format(' '.join(os.path.join(rpmbuild_dir, d)
@@ -130,6 +133,8 @@ def build_rpm(ctx, target='centos7'):
                     local=rpmbuild_dir,
                     cont='/rpmbuild',
                     img=DOCKER_IMGS[target]['name']))
+
+    ctx.run('mv -f {0} {1}'.format(os.path.join(rpmbuild_dir, 'RPMS/noarch/mssh-copy-id-*.rpm'), DIST_DIR))
 
 
 @task(help={'dest': 'destination directory of the archive'})
@@ -169,31 +174,30 @@ def build_docker_run(ctx, image):
 
     # Build the RPM & deb
     if image in ('centos6', 'centos7'):
-        # TODO: add centos7
         build_rpm(ctx, target=image)
-    elif image in ('ubuntu14.04',):
-        # TODO: add ubuntu14.04
+    elif image in ('ubuntu-trusty',):
+        # TODO: add ubuntu-trusty
         build_deb(ctx, target=image)
 
-    ctx.run('mkdir -p {0}'.format(os.path.join(PROJECT_DIR, 'docker/centos6-run-mssh-copy-id/_work')))
-    ctx.run('cp {0} {1}'.format(os.path.join(PROJECT_DIR, 'dist/rpmbuild/RPMS/noarch/mssh-copy-id-*.rpm'),
-                                os.path.join(PROJECT_DIR, 'docker/centos6-run-mssh-copy-id/_work')))
     dinfo = DOCKER_RUN_IMGS[image]
+    dinfo_work_dir = os.path.join(dinfo['path'], '_work')
+    ctx.run('mkdir -p {0}'.format(dinfo_work_dir))
+    ctx.run('cp {0} {1}'.format(os.path.join(DIST_DIR, 'mssh-copy-id-*.rpm'), dinfo_work_dir))
     ctx.run('docker rmi -f {0}'.format(dinfo['name']), warn=True)
     ctx.run('docker build -t {0} {1}'.format(dinfo['name'], dinfo['path']))
 
 
 @task
-def test(ctx):
+def tests(ctx):
     """
     run the unit tests
     """
     os.chdir(PROJECT_DIR)
-    ctx.run('py.test --color yes --cov msshcopyid --cov-report annotate --cov-report term-missing -v tests')
+    ctx.run('py.test --color yes --cov msshcopyid --cov-report annotate --cov-report term-missing -v tests/unit-tests')
 
 
 @task
-def func_test(ctx):
+def func_tests(ctx):
     """
     run the functional tests
     """
@@ -201,4 +205,4 @@ def func_test(ctx):
         raise SystemExit('Error: functional tests require Python 2.7 or higher.')
 
     os.chdir(PROJECT_DIR)
-    ctx.run('gauge func-tests/specs')
+    ctx.run('py.test --color yes -v tests/func-tests')
