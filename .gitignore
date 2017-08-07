@@ -7,6 +7,7 @@
 /func-tests/logs/
 /func-tests/reports/
 /mssh_copy_id.egg-info/
+/tests/func-tests/conf.py
 /tmp/
 
 /.coverage
