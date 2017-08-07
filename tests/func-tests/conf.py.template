@@ -1,0 +1,2 @@
+# Remove Docker containers after execution
+REMOVE_CONTAINERS = True

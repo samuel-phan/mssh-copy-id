@@ -9,6 +9,10 @@ from invoke import task
 
 PROJECT_DIR = os.path.dirname(__file__)
 DIST_DIR = os.path.join(PROJECT_DIR, 'dist')
+FUNC_TESTS_DIR = os.path.join(PROJECT_DIR, 'tests', 'func-tests')
+FUNC_CONF_FILE = os.path.join(FUNC_TESTS_DIR, 'conf.py')
+FUNC_CONF_TEMPLATE_FILE = os.path.join(FUNC_TESTS_DIR, 'conf.py.template')
+UNIT_TESTS_DIR = os.path.join(PROJECT_DIR, 'tests', 'unit-tests')
 
 DOCKER_DIR = os.path.join(PROJECT_DIR, 'docker')
 DOCKER_COMMON_DIR = os.path.join(DOCKER_DIR, 'common')
@@ -38,10 +42,7 @@ def clean(ctx):
                 '.coverage',
                 '.eggs',
                 'build',
-                'dist',
-                'func-tests/.gauge',
-                'func-tests/logs',
-                'func-tests/reports']
+                'dist']
     ctx.run('rm -vrf {0}'.format(' '.join(patterns)))
     ctx.run('''find . \( -name '*,cover' -o -name '__pycache__' -o -name '*.py[co]' -o -name '_work' \) '''
             '''-exec rm -vrf '{}' \; || true''')
@@ -193,7 +194,8 @@ def tests(ctx):
     run the unit tests
     """
     os.chdir(PROJECT_DIR)
-    ctx.run('py.test --color yes --cov msshcopyid --cov-report annotate --cov-report term-missing -v tests/unit-tests')
+    ctx.run('py.test --color yes --cov msshcopyid --cov-report annotate --cov-report term-missing -v "{0}"'
+            .format(UNIT_TESTS_DIR))
 
 
 @task
@@ -204,5 +206,9 @@ def func_tests(ctx):
     if sys.version_info < (2, 7):
         raise SystemExit('Error: functional tests require Python 2.7 or higher.')
 
+    # Ensure that the there is a "conf.py" file for the functional tests
+    if not os.path.exists(FUNC_CONF_FILE):
+        ctx.run('cp "{0}" "{1}"'.format(FUNC_CONF_TEMPLATE_FILE, FUNC_CONF_FILE))
+
     os.chdir(PROJECT_DIR)
-    ctx.run('py.test --color yes -v tests/func-tests')
+    ctx.run('py.test --color yes -v "{0}"'.format(FUNC_TESTS_DIR))
