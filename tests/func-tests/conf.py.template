@@ -1,2 +1,10 @@
-# Remove Docker containers after execution
-REMOVE_CONTAINERS = True
+# Docker containers termination
+# Possible values:
+#   - 'remove': (default) remove the containers.
+#   - 'stop': (for debug) only stop the containers. The Docker network will be kept as well.
+#   - 'keep': (for debug) keep the containers alive. The Docker network will be kept as well.
+REMOVE = 'remove'
+STOP = 'stop'
+KEEP = 'keep'
+
+DOCKER_CONTAINERS_TERMINATION = REMOVE
