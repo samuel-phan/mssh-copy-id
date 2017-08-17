@@ -14,6 +14,7 @@ import msshcopyid
 from msshcopyid.constants import DEFAULT_KNOWN_HOSTS
 from msshcopyid.constants import DEFAULT_SSH_DSA
 from msshcopyid.constants import DEFAULT_SSH_RSA
+from msshcopyid.errors import CopySSHKeyError, CopySSHKeysError
 from msshcopyid.log import format_exception, format_error
 from msshcopyid import utils
 
@@ -24,8 +25,13 @@ def main():
     start_dt = datetime.datetime.now()
     mc = Main()
     mc.init()
-    mc.run()
+    try:
+        mc.run()
+        rc = 0
+    except:
+        rc = 1
     logger.debug('Elapsed time: %s', datetime.datetime.now() - start_dt)
+    sys.exit(rc)
 
 
 class Main(object):
@@ -162,8 +168,9 @@ class Main(object):
 
             try:
                 self.copy_ssh_keys_to_hosts(self.hosts, known_hosts=self.args.known_hosts, dry=self.args.dry)
-            except Exception as ex:
+            except CopySSHKeysError as ex:
                 logger.error(format_error(format_exception(ex)))
+                raise
 
     def copy_ssh_keys_to_hosts(self, hosts, known_hosts=DEFAULT_KNOWN_HOSTS, dry=False):
         """
@@ -172,7 +179,9 @@ class Main(object):
         :param hosts: the list of `Host` objects to copy the SSH keys to.
         :param known_hosts: the `known_hosts` file to store the SSH public keys.
         :param dry: perform a dry run.
+        :raise msshcopyid.errors.CopySSHKeysError:
         """
+        exceptions = []  # list of `CopySSHKeyError`
         for host in hosts:
             logger.info('[%s] Copy the SSH public key [%s]...', host.hostname, self.sshcopyid.pub_key)
             if not dry:
@@ -181,6 +190,10 @@ class Main(object):
                 except (paramiko.ssh_exception.SSHException, socket.error) as ex:
                     logger.error(format_error(format_exception(ex)))
                     logger.debug(traceback.format_exc())
+                    exceptions.append(CopySSHKeyError(host=host, exception=ex))
+
+        if exceptions:
+            raise CopySSHKeysError(exceptions=exceptions)
 
     def copy_ssh_keys_to_host(self, host, known_hosts=DEFAULT_KNOWN_HOSTS):
         """
@@ -188,6 +201,7 @@ class Main(object):
 
         :param host: the `Host` object to copy the SSH keys to.
         :param known_hosts: the `known_hosts` file to store the SSH public keys.
+        :raise paramiko.ssh_exception.AuthenticationException:
         """
         password = host.password or self.sshcopyid.default_password
         try:
