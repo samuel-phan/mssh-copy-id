@@ -5,11 +5,13 @@ import sys
 
 from mock import MagicMock, mock_open, patch
 import paramiko
+import pytest
 import unittest2 as unittest
 
 import msshcopyid.cli
 from msshcopyid.constants import DEFAULT_SSH_DSA
 from msshcopyid.constants import DEFAULT_SSH_RSA
+from msshcopyid.errors import CopySSHKeysError
 
 
 class TestMain(unittest.TestCase):
@@ -191,10 +193,11 @@ class TestMain(unittest.TestCase):
         self.main.args.add = False
         self.main.args.remove = False
         self.main.args.clear = True
-        exception = Exception('copy ssh exception')
+        exception = CopySSHKeysError('copy ssh exception')
         mock_copy_ssh_keys_to_hosts.side_effect = exception
 
-        self.main.run()
+        with pytest.raises(CopySSHKeysError) as excinfo:
+            self.main.run()
 
         sshcopyid.remove_from_known_hosts.assert_called_once_with(self.main.hosts,
                                                                   known_hosts=self.main.args.known_hosts,
@@ -255,7 +258,11 @@ class TestMain(unittest.TestCase):
         socket_error = socket.error('socket error')
         mock_copy_ssh_keys_to_host.side_effect = [ssh_exception, socket_error, None]
 
-        self.main.copy_ssh_keys_to_hosts(hosts, known_hosts=known_hosts, dry=dry)
+        with pytest.raises(CopySSHKeysError) as excinfo:
+            self.main.copy_ssh_keys_to_hosts(hosts, known_hosts=known_hosts, dry=dry)
+
+        assert ssh_exception in (ex.exception for ex in excinfo.value.exceptions)
+        assert socket_error in (ex.exception for ex in excinfo.value.exceptions)
 
         mock_copy_ssh_keys_to_host.assert_any_call(host1, known_hosts=known_hosts)
         mock_copy_ssh_keys_to_host.assert_any_call(host2, known_hosts=known_hosts)
