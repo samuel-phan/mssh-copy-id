@@ -1,11 +1,10 @@
 import filecmp
 import os
 
-import basetest
 import dockertest
 
 
-class TestCopyToOneServer(basetest.BaseTestClass):
+class TestCopyToOneServer(object):
 
     def test_copy_ssh_key_to_one_server(self, function_test_dir, ssh_keys):
         """
