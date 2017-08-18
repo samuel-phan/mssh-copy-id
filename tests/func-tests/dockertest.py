@@ -13,6 +13,7 @@ import pytest
 import conf
 import constantstest
 import filetest
+from logtest import fmt_ctn_log
 
 logger = logging.getLogger(__name__)
 
@@ -23,16 +24,20 @@ def docker_network():
     try:
         docker_net = client.networks.get(constantstest.DOCKER_NETWORK_NAME)
     except docker.errors.NotFound:
+        start_dt = datetime.datetime.now()
         docker_net = client.networks.create(constantstest.DOCKER_NETWORK_NAME)
-        logger.info('Created the docker network "{}".'.format(docker_net.name))
+        logger.info('Created the docker network "%s". (elapsed: %s)',
+                    docker_net.name, datetime.datetime.now() - start_dt)
 
     yield docker_net
 
     if conf.DOCKER_CONTAINERS_TERMINATION == conf.REMOVE:
+        stop_dt = datetime.datetime.now()
         docker_net.remove()
-        logger.info('Removed the docker network "{}".'.format(docker_net.name))
+        logger.info('Removed the docker network "%s". (elapsed: %s)',
+                    docker_net.name, datetime.datetime.now() - stop_dt)
     else:
-        logger.info('The docker network "{}" has NOT been removed.'.format(docker_net.name))
+        logger.info('The docker network "%s" has NOT been removed.', docker_net.name)
 
 
 @contextmanager
@@ -54,15 +59,15 @@ def start_sshd_container(containers_dir):
                                    create_volumes_dir=True)
     client = docker.from_env()
     ctn = Container(client.containers.get(container_id))
-    logger.info('Started the container "{}" (name: "{}"). (elapsed: {})'.format(docker_image, ctn.name,
-                                                                                datetime.datetime.now() - start_dt))
+    logger.info(fmt_ctn_log(ctn.name, 'Started the container "%s". (elapsed: %s)'),
+                docker_image, datetime.datetime.now() - start_dt)
     yield ctn
 
     if conf.DOCKER_CONTAINERS_TERMINATION in (conf.STOP, conf.REMOVE):
         stop_dt = datetime.datetime.now()
         ctn.stop()
-        logger.info('Stopped the container "{}" (name: "{}"). (elapsed: {})'.format(docker_image, ctn.name,
-                                                                                    datetime.datetime.now() - stop_dt))
+        logger.info(fmt_ctn_log(ctn.name, 'Stopped the container "%s". (elapsed: %s)'),
+                    docker_image, datetime.datetime.now() - stop_dt)
 
 
 @contextmanager
@@ -83,8 +88,8 @@ def start_msshcopyid_container(containers_dir, image):
                                    create_volumes_dir=True)
     client = docker.from_env()
     ctn = MSSHCopyIdContainer(client.containers.get(container_id))
-    logger.info('Started the container "{}" (name: "{}"). (elapsed: {})'.format(image, ctn.name,
-                                                                                datetime.datetime.now() - start_dt))
+    logger.info(fmt_ctn_log(ctn.name, 'Started the container "%s". (elapsed: %s)'),
+                image, datetime.datetime.now() - start_dt)
     yield ctn
 
     if conf.DOCKER_CONTAINERS_TERMINATION in (conf.STOP, conf.REMOVE):
@@ -93,8 +98,8 @@ def start_msshcopyid_container(containers_dir, image):
         socket.send('exit\n')
         socket.close()
         ctn.stop()
-        logger.info('Stopped the container "{}" (name: "{}"). (elapsed: {})'.format(image, ctn.name,
-                                                                                    datetime.datetime.now() - stop_dt))
+        logger.info(fmt_ctn_log(ctn.name, 'Stopped the container "%s". (elapsed: %s)'),
+                    image, datetime.datetime.now() - stop_dt)
 
 
 class Container(docker.models.containers.Container):
@@ -110,6 +115,9 @@ class Container(docker.models.containers.Container):
             return getattr(self.__ctn, name)
         except AttributeError:
             return getattr(self, name)
+
+    def fmt_ctn_log(self, msg):
+        return fmt_ctn_log(self.name, msg)
 
     def exec_run2(self, cmd, stdout=True, stderr=True, stdin=False, tty=False,
                   privileged=False, user='', detach=False, stream=False,
@@ -164,12 +172,11 @@ class Container(docker.models.containers.Container):
         :raise docker.errors.ContainerError: if a command's exit status is different from the `exit_status_ok`
         """
         cmd_str = ' '.join(cmd) if isinstance(cmd, (list, tuple)) else cmd
-        logger.debug('Running "{}" in container "{}"'.format(cmd_str, self.name))
+        logger.debug(self.fmt_ctn_log('Running "%s"'), cmd_str)
         out, exit_status = self.exec_run2(cmd, stdout=stdout, stderr=stderr, stdin=stdin, tty=tty,
                                           privileged=privileged, user=user, detach=detach, stream=stream,
                                           socket=socket, environment=environment)
-        logger.debug('Result of running "{}" in container "{}" (exit status: {}):\n{}'
-                     .format(cmd_str, self.name, exit_status, out))
+        logger.debug(self.fmt_ctn_log('Result of running "%s" (exit status: %s):\n%s'), cmd_str, exit_status, out)
         if exit_status_ok is not None and exit_status != exit_status_ok:
             raise docker.errors.ContainerError(self,
                                                exit_status,
@@ -199,11 +206,14 @@ class Container(docker.models.containers.Container):
         return results
 
     def add_user(self, user, password, uid=None):
+        start_dt = datetime.datetime.now()
         if not uid:
             uid = os.getuid()
 
         self.run_cmds(('useradd -u {} -o {}'.format(uid, user),
                        'bash -c \'echo "{}:{}" | chpasswd\''.format(user, password)))
+        logger.info(self.fmt_ctn_log('Added user "%s" with password "%s". (elapsed: %s)'),
+                    user, password, datetime.datetime.now() - start_dt)
 
     def get_ssh_pub_key_file(self, user, pub_key=constantstest.ID_RSA_PUB_FILENAME):
         return os.path.join(self.get_ssh_dir(user), pub_key)
@@ -276,7 +286,11 @@ class Container(docker.models.containers.Container):
 class MSSHCopyIdContainer(Container):
 
     def run_msshcopyid(self, args, exit_status_ok=0):
-        return self.run_cmd('mssh-copy-id {}'.format(args), exit_status_ok=exit_status_ok)
+        start_dt = datetime.datetime.now()
+        cmd = 'mssh-copy-id {}'.format(args)
+        result = self.run_cmd(cmd, exit_status_ok=exit_status_ok)
+        logger.info(self.fmt_ctn_log('Run "%s" (elapsed: %s)'), cmd, datetime.datetime.now() - start_dt)
+        return result
 
 
 def start_container(image, command=None, detach=False, name=None, network=None, network_alias=None,
@@ -300,7 +314,7 @@ def start_container(image, command=None, detach=False, name=None, network=None, 
                                 stdin_open=stdin_open,
                                 tty=tty,
                                 volumes=volumes)
-    logger.debug('Starting container: {0}'.format(' '.join(cmd)))
+    logger.debug('Starting container: %s', ' '.join(cmd))
     return subprocess.check_output(cmd).strip()
 
 
